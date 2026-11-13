@@ -32,10 +32,12 @@ export class Skater {
       this.t -= frameDur;
       this.frame = spec.loop ? (this.frame + 1) % spec.frames : Math.min(spec.frames - 1, this.frame + 1);
     }
+    // Cells per row come from the actual texture, not a hardcoded 8: a 4-wide sheet indexed with
+    // 8 renders the wrong cell (or a blank one) and the skater appears to vanish.
     const cell = this.atlas.cell;
-    const idx = spec.row * 8 + this.frame;
+    const perRow = Math.max(1, Math.floor(this.sprite.width / cell));
+    const idx = spec.row * perRow + this.frame;
     this.sprite.setFrame(idx);
-    void cell;
     // feet anchored, whole-pixel snap
     this.sprite.setPosition(Math.round(x), Math.round(y + 3));
     this.sprite.setFlipX(facing < 0);

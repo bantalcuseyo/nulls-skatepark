@@ -79,9 +79,9 @@ export class Hud extends Phaser.Scene {
     // score block (top-left): width follows the score AND the best-combo line
     const sw = Math.max(96, this.score.width + 16, this.bestCombo.width + 16);
     plate(SAFE, SAFE, sw, 40);
-    // timer block (top-right): width follows whichever of timer / letters is wider RIGHT NOW,
-    // plus 6 px padding on each side so the glyphs never touch the border
-    const tw = Math.max(64, this.timer.width + 20, this.letters.width + 20);
+    // timer block (top-right): sized for the WIDEST string this slot can hold, so the plate never
+    // has to shrink when the text changes from "2:00" to "FREE" between frames.
+    const tw = Math.max(88, this.timer.width + 20, this.letters.width + 20);
     plate(W - SAFE - tw, SAFE, tw, 40);
     // re-anchor the text inside the final plate so nothing is clipped
     this.timer.setPosition(W - SAFE - tw + 10, SAFE + 4);
