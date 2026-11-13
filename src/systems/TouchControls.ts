@@ -60,9 +60,11 @@ export class TouchControls {
       const press = (e: PointerEvent, down: boolean): void => {
         e.preventDefault();
         if (down) {
-          el.setPointerCapture(e.pointerId);
+          // Record the input FIRST: setPointerCapture throws for pointers that are not active
+          // (synthetic events, or a pointer already released), and must never lose the press.
           this.active.set(e.pointerId, { actions, el });
           for (const a of actions) this.input.setTouch(a, true);
+          try { el.setPointerCapture(e.pointerId); } catch { /* capture is an optimisation */ }
           el.dataset.down = '1';
           el.style.background = `rgba(224,36,94,${Math.min(1, this.opts.opacity + 0.25)})`;
           if (this.opts.haptics && navigator.vibrate) navigator.vibrate(8);
@@ -78,6 +80,7 @@ export class TouchControls {
       el.addEventListener('pointerup', (e) => press(e, false));
       el.addEventListener('pointercancel', (e) => press(e, false));
       el.addEventListener('lostpointercapture', (e) => press(e, false));
+      el.addEventListener('pointerleave', (e) => { if (el.dataset.down === '1') press(e, false); });
       el.addEventListener('contextmenu', (e) => e.preventDefault());
       return el;
     };
@@ -86,16 +89,19 @@ export class TouchControls {
     const H = window.innerHeight;
     const padC = btn * 1.5;
     const baseY = H - padC - btn * 0.6 - gap;
+    let diamy = H - padC - gap;
     if (leftSide) {
       // D-pad on the left
       const cx = padC + gap;
       const cy = H - padC - gap;
+      diamy = cy;
       for (const d of DPAD) {
         mkBtn(d.t, cx + d.dx * (padC / 1.7) - btn / 2, cy + d.dy * (padC / 1.7) - btn / 2, btn, btn, [d.a], '#12d4e0');
       }
       // action diamond on the right
       const dx = W - padC - gap - btn * 0.4;
       const dy = cy;
+      diamy = dy;
       for (const d of DIAMOND) {
         const b = d.big ? btn * 1.35 : btn;
         mkBtn(d.t, dx + d.dx * padC * 0.62 - b / 2, dy + d.dy * padC * 0.62 - b / 2, b, b, [d.a], d.big ? '#e0245e' : '#e8a93a');
@@ -106,6 +112,7 @@ export class TouchControls {
       for (const d of DPAD) mkBtn(d.t, cx + d.dx * (padC / 1.7) - btn / 2, cy + d.dy * (padC / 1.7) - btn / 2, btn, btn, [d.a], '#12d4e0');
       const dx = padC + gap + btn * 0.4;
       const dy = cy;
+      diamy = dy;
       for (const d of DIAMOND) {
         const b = d.big ? btn * 1.35 : btn;
         mkBtn(d.t, dx + d.dx * padC * 0.62 - b / 2, dy + d.dy * padC * 0.62 - b / 2, b, b, [d.a], d.big ? '#e0245e' : '#e8a93a');
@@ -113,7 +120,9 @@ export class TouchControls {
     }
     void baseY;
 
-    this.specialBtn = mkBtn('SPECIAL', W / 2 - btn, H - btn * 2.2, btn * 2, btn, ['special'], '#e8a93a');
+    // SPECIAL sits above the action diamond (never over the D-pad) so a thumb can reach both.
+    const diamondX = leftSide ? W - padC - gap - btn * 0.4 : padC + gap + btn * 0.4;
+    this.specialBtn = mkBtn('SPECIAL', diamondX - btn, diamy - padC * 1.15 - btn, btn * 2, btn, ['special'], '#e8a93a');
     this.specialBtn.style.display = 'none';
     this.pauseBtn = mkBtn('II', W / 2 - 14, 8, 28, 24, [], '#adb18c');
     this.pauseBtn.addEventListener('pointerdown', (e) => { e.stopPropagation(); onPause(); });

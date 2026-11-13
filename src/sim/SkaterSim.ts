@@ -44,6 +44,8 @@ export class SkaterSim {
   /** Set when a rotation key was already held as we left the ground, so the held key does not
    *  auto-spin us into a bail. Cleared on release or a fresh press. */
   rotHoldLock = false;
+  /** Direction key state as of the last tick, used to decide if a pop should lock rotation. */
+  lastDirHeld = false;
   bodyLean = 0;
 
   combo = new ComboScore();
@@ -156,6 +158,7 @@ export class SkaterSim {
       this.animTime += dt;
       return;
     }
+    this.lastDirHeld = input.held.pushForward || input.held.brakeBack;
     this.captureBuffers(input);
     this.collectPickups();
 
@@ -296,6 +299,9 @@ export class SkaterSim {
   }
 
   private releaseOllie(): void {
+    // A direction held through the pop is locomotion (you were accelerating), not a spin
+    // request. Without this, holding "push" on a d-pad makes every ollie auto-frontflip.
+    if (this.lastDirHeld) this.rotHoldLock = true;
     const t = Math.min(1, this.ollieHold / PHYS.ollieHoldTime);
     const imp = this.ollieImpulse + (PHYS.ollieImpulseMax - PHYS.ollieImpulseTap) * t * (0.9 + ((this.stats.air - 1) / 4) * 0.2);
     this.vy = -imp;

@@ -4,11 +4,19 @@ const OVERRIDE_KEY = 'nulls.profileOverride';
 
 /** Detects desktop vs phone at boot. A manual override (auto | desktop | phone) wins. */
 export function detectProfile(win: Window = window): PlatformProfileInfo {
-  const touch = 'ontouchstart' in win || (navigator.maxTouchPoints ?? 0) > 0;
+  // ?profile=phone|desktop forces a profile (dev + the human's real-device checks on desktop).
+  const qp = new URLSearchParams(win.location?.search ?? '').get('profile');
+  if (qp === 'phone' || qp === 'desktop') {
+    writeOverride(qp);
+  } else if (qp === 'auto') {
+    writeOverride('auto');
+  }
+  const forced = qp === 'phone' || qp === 'desktop' ? qp : null;
+  const touch = forced === 'phone' || 'ontouchstart' in win || (navigator.maxTouchPoints ?? 0) > 0;
   const w = win.innerWidth;
   const h = win.innerHeight;
   const landscape = w >= h;
-  const override = readOverride();
+  const override = forced ?? readOverride();
   let profile: DeviceProfile;
   if (override === 'desktop' || override === 'phone') {
     profile = override;
