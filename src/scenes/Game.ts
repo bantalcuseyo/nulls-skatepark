@@ -356,6 +356,7 @@ export class Game extends Phaser.Scene {
 
   resumeGame(): void {
     this.paused = false;
+    this.touch?.setVisible(true);
     this.scene.stop('Pause');
   }
 
@@ -466,6 +467,7 @@ export class Game extends Phaser.Scene {
     this.finished = true;
     this.audio.play('bank');
     this.time.delayedCall(700, () => {
+      this.touch?.setVisible(false);   // menus own the screen from here
       this.scene.launch('Results', { game: this, goals: this.goals.update() });
       this.scene.pause();
     });

@@ -26,13 +26,20 @@ export class PixelText {
   readonly obj: Phaser.GameObjects.BitmapText;
   constructor(scene: Phaser.Scene, x: number, y: number, text = '', scale = 1) {
     registerFont(scene);
-    this.obj = scene.add.bitmapText(x, y, FONT_KEY, text, 8 * scale);
+    // Uppercase here too: the constructor path bypasses setText, and the bitmap font carries
+    // only uppercase glyphs, so lowercase letters would be silently dropped.
+    this.obj = scene.add.bitmapText(x, y, FONT_KEY, String(text).toUpperCase(), 8 * scale);
     this.obj.setLetterSpacing(0);
     this.obj.setOrigin(0, 0);
     this.obj.setScrollFactor(0);
     this.obj.setDepth(1000);
   }
-  setText(t: string): this { this.obj.setText(t); return this; }
+  setText(t: string): this {
+    // The bitmap font only carries uppercase glyphs; without this, lowercase letters are
+    // silently dropped from the string ("Score 15,000" rendered as "S 15,000").
+    this.obj.setText(String(t).toUpperCase());
+    return this;
+  }
   setTint(c: number): this { this.obj.setTint(c); return this; }
   setPosition(x: number, y: number): this { this.obj.setPosition(Math.round(x), Math.round(y)); return this; }
   setVisible(v: boolean): this { this.obj.setVisible(v); return this; }
