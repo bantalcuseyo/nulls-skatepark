@@ -146,14 +146,19 @@ def alley_far():
 
 
 def alley_mid():
+    """Tenement facades. Everything stops ON the ride line (y=208): shopfronts, graffiti and
+    openings are drawn ABOVE it, so brick never continues below the ground the skater rides."""
+    GROUND = 208
     img = Image.new("RGB", (LW, H), C["brick_d"])
     d = ImageDraw.Draw(img)
     # repeating tenement facades with fire escapes + shopfronts
     for i in range(6):
         bx = i * 240
         wall_h = rng.randint(150, 175)
-        bricks(img, bx, H - wall_h - 40, bx + 232, H, C["brick"], C["brick_d"], bw=18, bh=9)
-        windows(img, bx + 12, H - wall_h - 30, bx + 224, H - 70, 0.45)
+        bricks(img, bx, H - wall_h - 40, bx + 240, GROUND, C["brick"], C["brick_d"], bw=18, bh=9)
+        # Facades must tile exactly: stopping the brick at bx+232 left an 8 px gap of flat wall
+        # every 240 px, which is the hard vertical seam visible in gameplay.
+        windows(img, bx + 12, H - wall_h - 30, bx + 232, GROUND - 40, 0.45)
         # fire escape zig-zag
         fy = H - wall_h + 20
         for lvl in range(3):
@@ -163,20 +168,27 @@ def alley_mid():
                 d.line([(bx2, yy), (bx2, yy + 12)], fill=C["grey_d"])
             d.line([(bx + 20, yy + 12), (bx + 90, yy + 12)], fill=C["grey"])
             d.line([(bx + 85, yy + 12), (bx + 30, yy + 30)], fill=C["grey_d"], width=2)
-        # shopfront at street level
-        d.rectangle([bx + 8, H - 52, bx + 220, H - 20], fill=C["navy2"])
+        # shopfront, entirely above the ride line
+        d.rectangle([bx + 8, GROUND - 44, bx + 220, GROUND], fill=C["navy2"])
         # roll-up garage door with graffiti
-        d.rectangle([bx + 130, H - 50, bx + 200, H - 22], fill=C["grey_d"])
-        for yy in range(H - 50, H - 22, 3):
+        d.rectangle([bx + 130, GROUND - 42, bx + 200, GROUND], fill=C["grey_d"])
+        for yy in range(GROUND - 42, GROUND, 3):
             d.line([(bx + 130, yy), (bx + 200, yy)], fill=C["grey"])
         if i % 2 == 0:
-            graffiti(img, bx + 24, H - 50, 100, 26, [C["magenta"], C["navy"], C["cyan"]])
+            graffiti(img, bx + 24, GROUND - 42, 100, 26, [C["magenta"], C["navy"], C["cyan"]])
         else:
-            graffiti(img, bx + 24, H - 48, 96, 24, [C["cyan"], C["navy"], C["sage"]])
+            graffiti(img, bx + 24, GROUND - 40, 96, 24, [C["cyan"], C["navy"], C["sage"]])
+    # the street below the ride line is plain roadway, not brick
+    d.rectangle([0, GROUND, LW, H], fill=C["grey_d"])
+    for x in range(0, LW, 32):
+        d.line([(x, GROUND + 6), (x + 18, GROUND + 6)], fill=C["grey"])
     return img
 
 
 def alley_near():
+    """Foreground neon. Kept above the ride line except the light pools on the road, and the
+    dumpster strip is moved up to sit ON the line instead of sinking into it."""
+    GROUND = 208
     img = Image.new("RGBA", (LW, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     # neon signs + lamps + sidewalk details
@@ -198,14 +210,14 @@ def alley_near():
         d.line([(lx, 150), (lx, 40)], fill=C["grey_d"], width=2)
         d.line([(lx, 40), (lx + 22, 40)], fill=C["grey_d"], width=2)
         d.rectangle([lx + 18, 40, lx + 26, 45], fill=C["amber_soft"])
-        cone(img, lx + 22, 45, 232, 6, 52, C["amber"], 0.85)
-        glow(img, lx + 22, 232, 55, 12, C["amber"], 0.35)
-        # puddle neon spill
-        d.ellipse([bx + 20, 244, bx + 100, 252], fill=C["sage_d"])
-        glow(img, bx + 60, 248, 45, 5, C["magenta"] if i % 2 == 0 else C["cyan"], 0.5)
-        # dumpster silhouette strip near ground
-        d.rectangle([bx + 150, 218, bx + 190, 240], fill=C["green"])
-        d.rectangle([bx + 150, 216, bx + 190, 219], fill=C["sage_d"])
+        cone(img, lx + 22, 45, GROUND, 6, 52, C["amber"], 0.85)
+        glow(img, lx + 22, GROUND + 2, 55, 10, C["amber"], 0.35)
+        # puddle neon spill on the road surface
+        d.ellipse([bx + 20, GROUND + 8, bx + 100, GROUND + 14], fill=C["sage_d"])
+        glow(img, bx + 60, GROUND + 11, 45, 4, C["magenta"] if i % 2 == 0 else C["cyan"], 0.5)
+        # dumpster silhouette standing ON the ride line, not sinking below it
+        d.rectangle([bx + 150, GROUND - 22, bx + 190, GROUND], fill=C["green"])
+        d.rectangle([bx + 150, GROUND - 24, bx + 190, GROUND - 21], fill=C["sage_d"])
     return img
 
 
@@ -501,13 +513,14 @@ def composite(level):
 
 
 def mirror_seam(img):
-    """Return a 2x-wide strip: original + horizontal mirror. Tiling this reads as a continuous
-    street instead of a hard repeat cut (brief section 6: mirror-tiled seams)."""
-    w, h = img.size
-    out = Image.new(img.mode, (w * 2, h))
-    out.paste(img, (0, 0))
-    out.paste(img.transpose(Image.Transpose.FLIP_LEFT_RIGHT), (w, 0))
-    return out
+    """Tile the strip as a plain repeat instead of mirroring it.
+
+    D007 mirrored the strip to hide the repeat cut, which produced a mirror-symmetric wall with a
+    visible centre seam and course lines that reversed direction. A plain repeat keeps every course
+    at a constant y (the wall reads orthographic); the tile is authored to end on a course boundary
+    so the repeat joins cleanly, which is what actually removes the seam.
+    """
+    return img
 
 
 def main():

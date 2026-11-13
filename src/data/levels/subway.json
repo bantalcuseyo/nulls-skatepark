@@ -76,14 +76,14 @@
       "type": "bench",
       "id": "bench1",
       "x": 560,
-      "y": 188,
+      "y": 208,
       "len": 48
     },
     {
       "type": "bench",
       "id": "bench2",
       "x": 1120,
-      "y": 188,
+      "y": 208,
       "len": 48
     },
     {
@@ -97,7 +97,7 @@
       "type": "rail",
       "id": "rail1",
       "x": 950,
-      "y": 190,
+      "y": 208,
       "len": 120
     },
     {
@@ -212,11 +212,7 @@
   "layers": [
     {
       "key": "subway_far",
-      "scroll": 0.2
-    },
-    {
-      "key": "subway_mid",
-      "scroll": 0.55
+      "scroll": 0.25
     }
   ],
   "bailZones": [],
@@ -257,5 +253,9 @@
       "target": 3,
       "label": "Clear all 3 gaps"
     }
-  ]
+  ],
+  "groundBand": {
+    "key": "subway_mid",
+    "y": 208
+  }
 }

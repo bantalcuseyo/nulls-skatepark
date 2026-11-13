@@ -16,7 +16,7 @@ default. Implemented as `#1b2238` upper + `#adb18c` sole from the extracted pale
 
 ## D004 — Reference images come from the PDF
 The prompt PDF embeds the three environment stills and the 2x2 character sheet; the four
-individual detail sheets arrived as separate images. All were copied into `docs/refs/` so the
+individual detail sheets arrived as separate images. All were copied into `spec/refs/` so the
 repo is self-contained.
 
 ## D005 - Ramp launch must not auto-spin (playtest fix)
@@ -56,3 +56,80 @@ Note for whoever picks this up next: an image-description model rated these spri
 4/10, then 5/10 across three rounds while the actual measurements improved each time, and it
 described a side-view sprite as "top-down". Do not tune art against that signal; tune against the
 measurement, and judge the result at 1x in the running game.
+
+## D010 - Character stats and palette provenance corrected (brief step 0)
+`src/data/characters.json` carried stats that never matched the original spec (RIFF 4/4/3/3 instead
+of 3/3/3/3). All four rows are now the spec's numbers, each totalling 12: RIFF 3/3/3/3, PRISM
+3/4/2/3, BRASS 2/2/5/3, LOOP 4/2/4/2. Specials, unlocks, roles and descriptions are untouched.
+
+Every `docs/refs/` path was wrong: the reference images live in `spec/refs/`. Fixed in
+`tools/extract_palette.py`, `tools/downscale_refs.py`, `public/assets/palette.json`,
+`DECISIONS.md`, `CREDITS.md` and `README.md`. Re-running `tools/extract_palette.py` over
+`spec/refs/*` reproduces the exact same 32 colours, so only the provenance was wrong, not the art.
+
+## D011 - HEALTH and STAMINA are real mechanics (overrides the original spec)
+The original spec said there is no health: a bail costs the combo only. The rebuild brief makes both
+real, so this entry records the override. Numbers live in `src/data/physics.json` and are read by
+`SkaterSim`, never hardcoded in the HUD:
+
+| Rule | Value |
+|:--|:--|
+| HEALTH max | 100 (all four characters) |
+| Bail | -25 (and still costs the combo) |
+| Rolling hazard hit | -10, rate-limited to one hit per 0.8 s |
+| Clean landing after a scored trick | +5, capped at 100 |
+| HEALTH 0 | run over: BAILED OUT screen, score kept, RETRY offered |
+| STAMINA max | 100 |
+| Ollie / flip / grab | -15 / -10 / -10 |
+| Grind | -20 per second, scaled by BAL (5 BAL drains at 60 %) |
+| Push | -5 per stroke, scaled by SPD (5 SPD is 40 % cheaper) |
+| Regeneration | +25/s while rolling on the ground and not pushing |
+| Lockout | under 15: ollie / flip / grab refused, bar flashes, rolling still works |
+
+Bars animate toward the real value (160 HUD px/s for HEALTH, 200 for STAMINA) instead of jumping.
+Log any playtest retune here.
+
+## D012 - In-game skater is a 3/4 side view built from a profile bias
+The reported problem was that the in-game skater was a small rear view with no face. The sprite
+renderer in `tools/gen_art.py` was geometrically symmetric, so at 40-48 px it read as a front-on
+mask. Two constants (`PROFILE_HEAD_DX`, `PROFILE_FOOT_DX`) bias the head and lead foot along the
+direction of travel, and the eye row now draws a full-size near eye plus a narrower far eye.
+RIFF's headphone band was raised off the brow because it was covering his crescent eyes.
+
+The characters are NOT redrawn from a description. Outfit colours, ears, headgear and props come
+from the owner's character sheets in `spec/refs/` and are encoded in the `SKINS` table; the HUD
+portrait is a crop of the owner's own panel (`tools/gen_portraits.py`).
+
+## D013 - D007 is superseded: backgrounds repeat instead of mirroring
+Mirror-tiling a strip produces a mirror-symmetric wall with a visible centre seam, which is one of
+the reported defects. `mirror_seam()` now returns the strip unchanged so layers tile as a plain
+repeat. The tile is authored to end on a course boundary, and the alley facades now fill their full
+240 px cell (they used to stop at +232, leaving an 8 px flat gap that read as a hard vertical seam
+every 240 px).
+
+## D014 - One ground line: art and terrain share y=208
+The painted environment and the level geometry disagreed, so props and the skater appeared to float.
+`alley.json` was at y=220 while subway and warehouse were at 208; the alley is now 208 like the
+rest. `tools/gen_subway.py` paints its platform surface at 208, and levels can declare a
+`groundBand` (a tile sprite that scrolls 1:1 with the camera) so the drawn ride line cannot drift off
+the sim's ground polyline. When a `groundBand` exists the graphics floor is suppressed, because two
+drawn ground lines is exactly the defect being fixed. Brick and shopfronts are drawn only ABOVE 208;
+below it is roadway, never wall.
+
+## D015 - Scene instance reuse caused the pause and RUN COMPLETE soft-locks
+Phaser reuses scene instances. `Pause` and `Results` kept their `items` array across a
+stop-and-relaunch, so the second pause (and the second run) re-measured destroyed `BitmapText`
+objects inside `refresh()`. `BitmapText.width` then threw `Cannot read properties of null (reading
+'scaleX')` in `create()`, which left the game paused with no overlay and the timer stuck at 0:00.
+
+Both scenes now reset `items`/`actions`/`idx` at the top of `create()` and `refresh()` skips entries
+whose `frame` is gone. `togglePause()` also debounces repeat presses for 250 ms so one physical
+keypress cannot toggle twice. Verified by driving the real browser: ESC x4 cycles
+paused -> resumed -> paused -> resumed, and pause -> resume -> finish -> RETRY works every time.
+
+## D016 - HUD text is measured from string length, not BitmapText.width
+Right-aligning with `right - obj.width` clipped the head off long labels ("SPECTRUM SPIN" rendered as
+"TRUN SPIN") because the bitmap text bounds cache is stale on the frame a string changes. The HUD
+right-aligns using `textW(text) = len * 8` (the font is fixed-width 8 px) AFTER setting the string.
+Both clusters also sit on a soft dark plate: the scene is mid-value pixel art, and bare text on top
+of a lit train window was unreadable even when correctly positioned.

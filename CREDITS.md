@@ -7,7 +7,7 @@
 ## Art
 - All sprites, tiles, props and backgrounds are generated procedurally for this project by
   `tools/gen_art.py` from the palette in `public/assets/palette.json`. No third-party art.
-- Style references (`docs/refs/`) were supplied by the project owner and are used as art
+- Style references (`spec/refs/`) were supplied by the project owner and are used as art
   direction only; no pixel data is copied into shipped assets except the deliberately
   downscaled reference stills used for the M0 background, the title screen backdrop and the
   level-2/3 first-screen mid layer (per brief section 6).

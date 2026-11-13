@@ -15,17 +15,27 @@ export class Results extends Phaser.Scene {
 
   constructor() { super('Results'); }
 
-  init(d: { game: Game; goals: GoalState[] }): void {
+  init(d: { game: Game; goals: GoalState[]; reason?: 'time' | 'bailed_out' }): void {
     this.g = d.game;
     this.goals = d.goals;
+    this.reason = d.reason ?? 'time';
   }
 
+  private reason: 'time' | 'bailed_out' = 'time';
+
   create(): void {
+    // Same instance-reuse trap as Pause: this scene is stopped and re-launched on every RETRY, so
+    // stale entries from the previous run measured destroyed BitmapTexts and threw inside refresh()
+    // — which is what made RUN COMPLETE freeze with the timer stuck at 0:00.
+    this.items = [];
+    this.actions = [];
+    this.idx = 0;
     const save = (this.game as unknown as { save: SaveSystem }).save;
     const audio = (this.game as unknown as { audio: AudioManager }).audio;
     const sim = this.g.sim;
     const level = this.g.currentLevel;
     const W = this.scale.width;
+    const bailedOut = this.reason === 'bailed_out';
     sim.bankCombo();
 
     // persist
@@ -36,12 +46,17 @@ export class Results extends Phaser.Scene {
     const isBest = save.recordScore(level.id, sim.score, sim.bestCombo);
 
     this.add.rectangle(0, 0, W, 270, 0x0c1226, 0.92).setOrigin(0, 0);
-    const title = new PixelText(this, 0, 14, strings.results, 2).setTint(0x12d4e0);
+    // HEALTH 0 is its own screen: BAILED OUT, score kept, RETRY offered.
+    const heading = bailedOut ? 'BAILED OUT' : strings.results;
+    const title = new PixelText(this, 0, 14, heading, 2).setTint(bailedOut ? 0xd42b2e : 0x12d4e0);
     title.obj.setPosition(Math.round((W - title.width) / 2), 14);
     const score = new PixelText(this, 0, 40, `${strings.score} ${sim.score.toLocaleString('en-US')}`, 2).setTint(0xe8a93a);
     score.obj.setPosition(Math.round((W - score.width) / 2), 40);
     const sub = new PixelText(this, 0, 60,
-      `${strings.bestCombo} ${sim.bestCombo.toLocaleString('en-US')}  ${isBest ? strings.newBest : `${strings.best} ${save.data.scores[level.id] ?? 0}`}`, 1).setTint(isBest ? 0xe0245e : 0xadb18c);
+      bailedOut
+        ? `HEALTH 0 - SCORE KEPT   BEST COMBO ${sim.bestCombo.toLocaleString('en-US')}`
+        : `${strings.bestCombo} ${sim.bestCombo.toLocaleString('en-US')}  ${isBest ? strings.newBest : `${strings.best} ${save.data.scores[level.id] ?? 0}`}`,
+      1).setTint(bailedOut ? 0xf4f0e8 : isBest ? 0xe0245e : 0xadb18c);
     sub.obj.setPosition(Math.round((W - sub.width) / 2), 60);
 
     // goal list
@@ -88,6 +103,7 @@ export class Results extends Phaser.Scene {
 
   private refresh(): void {
     this.items.forEach((it, i) => {
+      if (!it?.obj?.frame) return;      // destroyed by a previous run: skip, never measure
       it.setText((i === this.idx ? '> ' : '  ') + it.obj.text.replace(/^[><] /, '').replace(/^  /, ''));
       it.obj.setPosition(Math.round((this.scale.width - it.width) / 2), it.obj.y);
     });

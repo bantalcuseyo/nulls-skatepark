@@ -44,6 +44,8 @@ export class Game extends Phaser.Scene {
   private level!: LevelDef;
   private opts!: GameOptions;
   private layers: Phaser.GameObjects.TileSprite[] = [];
+  /** Painted platform band (level.groundBand); scrolls 1:1 so the drawn ride line == the sim ground. */
+  private groundBand?: Phaser.GameObjects.TileSprite;
   private layerScroll: number[] = [];
   private groundGfx!: Phaser.GameObjects.Graphics;
   private propSprites: Phaser.GameObjects.Image[] = [];
@@ -69,6 +71,8 @@ export class Game extends Phaser.Scene {
   private reduceFlash = false;
   private shakeScale = 1;
   private save!: SaveSystem;
+  /** The selected character's data row — the HUD reads name/special/colour from here only. */
+  private char!: typeof charactersData[number];
 
   constructor() {
     super('Game');
@@ -90,6 +94,7 @@ export class Game extends Phaser.Scene {
     this.level = LEVELS[this.opts.levelId] ?? LEVELS.alley;
     this.timeLeft = this.level.timeLimit;
     const charDef = charactersData.find((c) => c.id === this.opts.characterId) ?? charactersData[0];
+    this.char = charDef;
     const { terrain } = loadLevel(this.level);
     const profile = detectProfile();
     const assist = profile.profile === 'phone';
@@ -114,9 +119,19 @@ export class Game extends Phaser.Scene {
       this.layerScroll.push(l.scroll);
     }
 
+    // --- platform band: the drawn ground. It scrolls 1:1 with the camera so the painted ride line
+    // always sits exactly where the sim's ground polyline is; nothing can float above it.
+    const band = (this.level as { groundBand?: { key: string; y: number } }).groundBand;
+    if (band) {
+      this.groundBand = this.add.tileSprite(0, 0, this.scale.width, 270, band.key)
+        .setOrigin(0, 0).setScrollFactor(0).setDepth(0);
+    }
+
     // --- ground polygon + props (ground behind props so ramps read correctly)
     this.groundGfx = this.add.graphics().setDepth(1);
-    this.drawGround(terrain.ground, terrain.surfaces);
+    // With painted art the graphics floor is redundant and reads as a second ground line, so it is
+    // suppressed; ramps/platforms still draw because their decks are gameplay information.
+    this.drawGround(terrain.ground, terrain.surfaces, !band);
     this.drawProps();
     this.drawPickups();
     this.drawHazards();
@@ -176,22 +191,24 @@ export class Game extends Phaser.Scene {
    * 6 allows exactly this), so a deep filled ground polygon would paint over the art. Draw only a
    * thin floor band under the play surface plus the deck line the skater rides.
    */
-  private drawGround(ground: GroundPoint[], surfaces: SurfaceSeg[]): void {
+  private drawGround(ground: GroundPoint[], surfaces: SurfaceSeg[], drawFloor = true): void {
     const g = this.groundGfx;
     g.clear();
 
-    // Base floor: a shallow band (12 px) instead of a full screen fill.
-    g.lineStyle(13, 0x141a2e, 0.92);
-    g.beginPath();
-    g.moveTo(ground[0].x, ground[0].y + 5);
-    for (const p of ground) g.lineTo(p.x, p.y + 5);
-    g.strokePath();
-    // rideable edge, one bright line so the surface is unmistakable
-    g.lineStyle(2, 0xadb18c, 1);
-    g.beginPath();
-    g.moveTo(ground[0].x, ground[0].y);
-    for (const p of ground) g.lineTo(p.x, p.y);
-    g.strokePath();
+    if (drawFloor) {
+      // Base floor: a shallow band (12 px) instead of a full screen fill.
+      g.lineStyle(13, 0x141a2e, 0.92);
+      g.beginPath();
+      g.moveTo(ground[0].x, ground[0].y + 5);
+      for (const p of ground) g.lineTo(p.x, p.y + 5);
+      g.strokePath();
+      // rideable edge, one bright line so the surface is unmistakable
+      g.lineStyle(2, 0xadb18c, 1);
+      g.beginPath();
+      g.moveTo(ground[0].x, ground[0].y);
+      for (const p of ground) g.lineTo(p.x, p.y);
+      g.strokePath();
+    }
 
     // Ramps / platforms: a transparent body with a bright deck edge, so the reference art behind
     // them still reads.
@@ -302,6 +319,19 @@ export class Game extends Phaser.Scene {
         this.hitStop = 0.08;
         this.fx.dust(x, y, 10);
         this.flash(0.25);
+        break;
+      case 'hazard':
+        this.audio.play('bail');
+        this.fx.dust(x, y, 6);
+        this.rig.shake(0.3 * this.shakeScale);
+        this.hud?.showCallout('HAZARD -10 HEALTH');
+        break;
+      case 'stamina_locked':
+        this.hud?.showStaminaLocked();
+        break;
+      case 'bailed_out':
+        // HEALTH hit 0: freeze the sim (already frozen) and hand over to the BAILED OUT screen.
+        this.finishRun('bailed_out');
         break;
       case 'bank':
         this.audio.play('bank');
@@ -460,7 +490,7 @@ export class Game extends Phaser.Scene {
         img.x = bx + Math.sin(this.hazardT * 0.7) * range;
         img.setAngle(Math.sin(this.hazardT * 0.7) * 8);
         if (Math.abs(this.sim.x - img.x) < 12 && this.sim.grounded && this.sim.state !== 'bail') {
-          this.sim.vx *= 0.6;
+          this.sim.hitHazard();
           this.fx.dust(this.sim.x, this.sim.y, 3);
         }
       }
@@ -474,6 +504,9 @@ export class Game extends Phaser.Scene {
     for (let i = 0; i < this.layers.length; i++) {
       this.layers[i].tilePositionX = this.cameras.main.scrollX * this.layerScroll[i];
     }
+    // The platform band is world-locked: 1:1 with the camera, so its ride line cannot drift off
+    // the sim's ground polyline (the old art was a parallax layer and floated).
+    if (this.groundBand) this.groundBand.tilePositionX = this.cameras.main.scrollX;
 
     // fx
     this.fx.update(dt);
@@ -504,12 +537,13 @@ export class Game extends Phaser.Scene {
 
   private goalToastShown: Set<string> | null = null;
 
-  private finishRun(): void {
+  private finishRun(reason: 'time' | 'bailed_out' = 'time'): void {
+    if (this.finished) return;
     this.finished = true;
     this.audio.play('bank');
     this.time.delayedCall(700, () => {
       this.touch?.setVisible(false);   // menus own the screen from here
-      this.scene.launch('Results', { game: this, goals: this.goals.update() });
+      this.scene.launch('Results', { game: this, goals: this.goals.update(), reason });
       this.scene.pause();
     });
   }
@@ -518,4 +552,7 @@ export class Game extends Phaser.Scene {
   get isFreeSkate(): boolean { return this.opts.freeSkate; }
   get currentLevel(): LevelDef { return this.level; }
   get characterId(): string { return this.opts.characterId; }
+  get characterDef(): typeof charactersData[number] { return this.char; }
+  get health(): number { return this.sim.health; }
+  get stamina(): number { return this.sim.stamina; }
 }

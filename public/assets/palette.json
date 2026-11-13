@@ -1,12 +1,12 @@
 {
   "source": [
-    "docs/refs/pdf_p15_0.png",
-    "docs/refs/pdf_p16_0.png",
-    "docs/refs/pdf_p17_0.png",
-    "docs/refs/ref_char_01_riff_sheet.jpg",
-    "docs/refs/ref_char_02_prism_sheet.jpg",
-    "docs/refs/ref_char_03_brass_sheet.jpg",
-    "docs/refs/ref_char_04_loop_sheet.jpg"
+    "spec/refs/pdf_p15_0.png",
+    "spec/refs/pdf_p16_0.png",
+    "spec/refs/pdf_p17_0.png",
+    "spec/refs/ref_char_01_riff_sheet.jpg",
+    "spec/refs/ref_char_02_prism_sheet.jpg",
+    "spec/refs/ref_char_03_brass_sheet.jpg",
+    "spec/refs/ref_char_04_loop_sheet.jpg"
   ],
   "colours": [
     "#f9c588",

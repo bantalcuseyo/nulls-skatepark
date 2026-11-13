@@ -14,7 +14,7 @@ type Screen = 'main' | 'chars' | 'levels' | 'settings' | 'credits';
 export class Title extends Phaser.Scene {
   private bg!: Phaser.GameObjects.TileSprite;
   private titleText!: PixelText;
-  private items: { label: PixelText; id: string; action: () => void }[] = [];
+  private items: { label: PixelText; id: string; action: () => void; left?: number }[] = [];
   private hint!: PixelText;
   private idx = 0;
   private screen: Screen = 'main';
@@ -66,16 +66,16 @@ export class Title extends Phaser.Scene {
     this.portrait?.destroy();
   }
 
-  private addItem(id: string, text: string, y: number, action: () => void, tint = 0xf4f0e8): void {
-    const label = new PixelText(this, 0, y, text, 1).setTint(tint);
-    label.obj.setPosition(Math.round((this.scale.width - label.width) / 2), y);
+  private addItem(id: string, text: string, y: number, action: () => void, tint = 0xf4f0e8, left?: number): void {
+    const label = new PixelText(this, left ?? 0, y, text, 1).setTint(tint);
+    if (left === undefined) label.obj.setPosition(Math.round((this.scale.width - label.width) / 2), y);
     const hit = label.obj.setInteractive({ useHandCursor: true });
     hit.on('pointerdown', () => {
       this.audio.unlock();
       const i = this.items.findIndex((it) => it.id === id);
       if (i >= 0) { this.idx = i; this.refresh(); action(); }
     });
-    this.items.push({ label, id, action });
+    this.items.push({ label, id, action, left });
   }
 
   private showMain(): void {
@@ -104,16 +104,16 @@ export class Title extends Phaser.Scene {
     this.screen = 'chars';
     this.clearItems();
     this.titleText.setText(strings.charSelect).setVisible(true);
-    this.titleText.obj.setPosition(Math.round((this.scale.width - this.titleText.width) / 2), 12);
+    this.titleText.obj.setPosition(Math.round((this.scale.width - this.titleText.width) / 2), 10);
     this.hint.setText('UP/DOWN SKATER   ENTER   ESC BACK');
     this.hint.obj.setPosition(8, 256);
 
     // Two explicit columns that cannot collide:
-    //   left  x=16..190  -> the skater list
-    //   right x=210..W-16 -> portrait, name, description, stats
-    const LIST_X = 16;
-    const LIST_Y = 48;
-    const ROW_H = 20;
+    //   left  x=14..176   -> the skater list
+    //   right x=196..W-14 -> portrait panel, name, description, stats, special
+    const LIST_X = 14;
+    const LIST_Y = 44;
+    const ROW_H = 18;
     charactersData.forEach((c, i) => {
       const unlocked = this.save.isCharacterUnlocked(c.id, c.unlockGoals);
       const label = unlocked ? c.name : `${c.name} ${c.unlockGoals}`;
@@ -124,30 +124,57 @@ export class Title extends Phaser.Scene {
         this.idx = i;
         this.refresh();
         this.showCharStats();
-        if (unlocked) this.choose();
-      });
-      this.items.push({ label: item, id: c.id, action: () => {
-        if (!unlocked) return;
-        this.selectedChar = c.id;
-        this.save.data.selectedCharacter = c.id;
-        this.save.save();
+        this.audio.unlock();
         this.audio.play('menu_confirm');
-        this.showLevels();
-      } });
+        this.confirmChar(i);
+      });
+      this.items.push({ label: item, id: c.id, action: () => this.confirmChar(i), left: LIST_X });
     });
     // BACK lives in the list column under the skaters, not in the info column.
-    this.addItem('back', strings.back, 48 + charactersData.length * 20 + 8, () => this.showMain(), UI.grey);
+    this.addItem('back', strings.back, LIST_Y + charactersData.length * ROW_H + 8, () => this.showMain(), UI.grey, LIST_X);
 
     this.idx = Math.max(0, charactersData.findIndex((c) => c.id === this.selectedChar));
     this.refresh();
     this.showCharStats();
   }
 
+  /**
+   * Confirm the skater at `i`, which is whatever the cursor is on — not a hardcoded default.
+   * Previously ENTER only ever launched RIFF because the action closures all captured index 0.
+   */
+  private confirmChar(i: number): void {
+    const c = charactersData[i];
+    if (!c) return;
+    if (!this.save.isCharacterUnlocked(c.id, c.unlockGoals)) {
+      this.audio.play('menu_back');
+      this.showLocked(c.name, c.unlockGoals);
+      return;
+    }
+    this.selectedChar = c.id;
+    this.save.data.selectedCharacter = c.id;
+    this.save.save();
+    this.audio.play('menu_confirm');
+    this.showLevels();
+  }
+
+  /** A locked skater must say what it needs, not silently do nothing. */
+  private showLocked(name: string, need: number): void {
+    this.hint.setText(`${name} NEEDS ${need} GOALS - YOU HAVE ${this.save.totalGoals()}`);
+    this.hint.obj.setPosition(8, 256);
+    this.time.delayedCall(1400, () => {
+      if (this.screen === 'chars') {
+        this.hint.setText('UP/DOWN SKATER   ENTER   ESC BACK').setVisible(true);
+        this.hint.obj.setPosition(8, 256);
+      }
+    });
+  }
+
   private statGfx?: Phaser.GameObjects.Graphics;
 
   /** Right-hand info column: portrait, name, description, stat rows. Rebuilt from scratch each time. */
   private showCharStats(): void {
-    const c = charactersData[this.idx] ?? charactersData[0];
+    // BACK sits in the list after the four skaters, so the cursor can point past the roster.
+    const c = charactersData[this.idx] ?? charactersData.find((x) => x.id === this.selectedChar) ?? charactersData[0];
     if (this.screen !== 'chars') return;
 
     // Destroy everything this panel owns first — leftover text from the previous skater is exactly
@@ -159,45 +186,67 @@ export class Title extends Phaser.Scene {
     this.portrait?.destroy();
 
     const W = this.scale.width;
-    const colX = Math.round(W * 0.63);          // right column centre
-    const colW = W - colX - 12;                 // usable width to the right edge
+    const colX = Math.round(W * 0.66);          // right column centre
+    const colW = W - colX - 10;                 // usable width to the right edge
+    const plateX = colX - 78;
+    const plateW = W - plateX - 12;
 
-    this.portrait = this.add.image(colX, 104, `portrait_${c.id}`)
-      .setOrigin(0.5, 0.5).setDisplaySize(78, 78).setDepth(1001);
+    // Opaque plate behind the whole right column: the environment art must never fight the text.
+    const g = this.add.graphics().setDepth(1000);
+    this.statGfx = g;
+    g.fillStyle(UI.bgPanel, 0.94);
+    g.fillRect(plateX, 40, plateW, 196);
+    g.lineStyle(1, UI.cyan, 0.45);
+    g.strokeRect(plateX + 0.5, 40.5, plateW - 1, 195);
 
-    const name = new PixelText(this, 0, 148, c.name, UI.h2).setTint(UI.cream).setDepth(1002);
-    name.obj.setPosition(Math.round(colX - name.width / 2), 148);
+    // Portrait: the owner's own head crop, 2x, on a framed plate. No redraw.
+    const portSize = 64;
+    g.fillStyle(UI.ink, 1);
+    g.fillRect(colX - portSize / 2 - 2, 46, portSize + 4, portSize + 4);
+    g.lineStyle(1, c.hud.nameColour, 0.9);
+    g.strokeRect(colX - portSize / 2 - 1.5, 46.5, portSize + 3, portSize + 3);
+    this.portrait = this.add.image(colX, 46 + portSize / 2 + 1, `head_${c.id}_2x`)
+      .setOrigin(0.5, 0.5).setDisplaySize(portSize, portSize).setDepth(1001);
+
+    const name = new PixelText(this, 0, 118, c.name, UI.h2).setTint(c.hud.nameColour).setDepth(1002);
+    name.obj.setPosition(Math.round(colX - name.width / 2), 118);
     (this.statLabels ??= []).push(name);
 
-    const desc = new PixelText(this, 0, 162, c.desc, UI.micro).setTint(UI.grey).setDepth(1002);
+    const desc = new PixelText(this, 0, 132, c.desc, UI.micro).setTint(UI.grey).setDepth(1002);
     // wrap the description to the column so it never runs under the list column
     desc.setText(this.wrap(c.desc, Math.floor(colW / 6)));
-    desc.obj.setPosition(Math.round(colX - desc.width / 2), 162);
+    desc.obj.setPosition(Math.round(colX - desc.width / 2), 132);
     (this.statLabels ??= []).push(desc);
 
-    const g = this.add.graphics().setDepth(1001);
-    this.statGfx = g;
     const rows: Array<[string, number]> = [['SPD', c.stats.speed], ['AIR', c.stats.air], ['BAL', c.stats.balance], ['FLP', c.stats.flip]];
-    const rowY = 182;
-    const rowH = 10;
-    const labelX = colX - 42;
-    const barX = colX - 18;
-    rows.forEach(([, v], i) => {
+    const rowY = 158;
+    const rowH = 11;
+    const labelX = colX - 46;
+    const barX = colX - 20;
+    rows.forEach(([label, v], i) => {
       const y = rowY + i * rowH;
       for (let k = 0; k < 5; k++) {
         const x = barX + k * 8;
         g.fillStyle(k < v ? UI.amber : UI.dim, 1);
         g.fillRect(x, y, 6, 5);
       }
-      const t = new PixelText(this, labelX, y - 1, rows[i][0], UI.micro).setTint(UI.cyan).setDepth(1002);
+      const t = new PixelText(this, labelX, y - 1, label, UI.micro).setTint(UI.cyan).setDepth(1002);
       (this.statLabels ??= []).push(t);
     });
 
     const sp = new PixelText(this, 0, rowY + rows.length * rowH + 6, `SPECIAL: ${c.special}`, UI.micro)
-      .setTint(UI.green).setDepth(1002);
+      .setTint(c.hud.specialColour).setDepth(1002);
     sp.setText(this.wrap(`SPECIAL: ${c.special}`, Math.floor(colW / 6)));
     sp.obj.setPosition(Math.round(colX - sp.width / 2), rowY + rows.length * rowH + 6);
     (this.statLabels ??= []).push(sp);
+
+    // Unlock requirement, always visible so a locked skater explains itself before it is tried.
+    const unlocked = this.save.isCharacterUnlocked(c.id, c.unlockGoals);
+    const lock = new PixelText(this, 0, rowY + rows.length * rowH + 20,
+      unlocked ? 'UNLOCKED' : `NEEDS ${c.unlockGoals} GOALS`, UI.micro)
+      .setTint(unlocked ? UI.green : UI.magenta).setDepth(1002);
+    lock.obj.setPosition(Math.round(colX - lock.width / 2), rowY + rows.length * rowH + 20);
+    (this.statLabels ??= []).push(lock);
 
     this.auditOverlaps();
   }
@@ -331,7 +380,7 @@ export class Title extends Phaser.Scene {
   private choose(): void {
     this.audio.unlock();
     const it = this.items[this.idx];
-    if (it) { this.audio.play('menu_confirm'); it.action(); }
+    if (it) it.action();
   }
 
   private refresh(): void {
@@ -339,7 +388,9 @@ export class Title extends Phaser.Scene {
       const focused = i === this.idx;
       const text = it.label.obj.text.replace(/^[><] /, '').replace(/^  /, '');
       it.label.setText(focused ? `> ${text}` : `  ${text}`);
-      it.label.obj.setPosition(Math.round((this.scale.width - it.label.width) / 2), it.label.obj.y);
+      // Left-column items stay pinned to their column; centred menus re-centre every refresh.
+      const x = it.left !== undefined ? it.left : Math.round((this.scale.width - it.label.width) / 2);
+      it.label.obj.setPosition(x, it.label.obj.y);
       it.label.setAlpha(focused ? 1 : 0.7);
     });
   }

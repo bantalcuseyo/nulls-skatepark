@@ -39,5 +39,19 @@
   "respawnSpeed": 90,
   "railEndLaunchBonus": 60,
   "railAutoOllieFrames": 6,
-  "maxDt": 0.05
+  "maxDt": 0.05,
+
+  "healthMax": 100,
+  "healthBailCost": 25,
+  "healthHazardCost": 10,
+  "healthCleanLandBonus": 5,
+  "staminaMax": 100,
+  "staminaOllieCost": 15,
+  "staminaTrickCost": 10,
+  "staminaGrindDrain": 20,
+  "staminaPushCost": 5,
+  "staminaRegen": 25,
+  "staminaLockout": 15,
+  "pushStrokeTime": 0.45,
+  "healthFlashBelow": 30
 }

@@ -93,6 +93,9 @@ export class SaveSystem {
   }
 
   isCharacterUnlocked(_id: string, unlockGoals: number): boolean {
+    // QA escape hatch: `?unlock=all` opens the whole roster so every character can be screenshotted
+    // in a real run. It never ships as the default and never changes the unlock numbers.
+    if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('unlock') === 'all') return true;
     return this.totalGoals() >= unlockGoals;
   }
 

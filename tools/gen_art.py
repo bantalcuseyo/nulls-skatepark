@@ -42,6 +42,12 @@ OUTLINE = (6, 6, 10)
 WHITE = (244, 240, 232)
 SHADOW = (28, 26, 34)
 
+# Profile bias, in cell px. The sprite faces +x; the renderer mirrors it for the other direction.
+# Without these the figure is symmetric and reads as front-on at game scale (the brief's complaint:
+# "small rear view, no face, no eyes").
+PROFILE_HEAD_DX = 2.2      # head leads the shoulders
+PROFILE_FOOT_DX = 1.6      # lead foot forward of the hip
+
 
 @dataclass
 class Skin:
@@ -199,11 +205,15 @@ def skater_frame(skin: Skin, pose: Pose, facing: int = 1) -> Image.Image:
     hip = (32.0, FOOT_Y - leg_h)
     sh = (hip[0] + sway * torso_h, hip[1] - cosp * torso_h)
     hc = (sh[0] + sway * (head_r + 1.2), sh[1] - cosp * (head_r + 1.0))
+    # PROFILE BIAS: the head leads the body in the direction of travel, so the sprite reads as a
+    # 3/4 side view with a visible face instead of a mirrored front-on chibi blob.
+    hc = (hc[0] + PROFILE_HEAD_DX, hc[1])
 
-    # Wide stance and thin legs: two limbs read as separate at game scale.
+    # Wide stance and thin legs: two limbs read as separate at game scale. The stance is biased
+    # along the direction of travel (lead foot forward, trail foot back) for a side-on stance.
     stance = 8.2 + pose.leg_spread * 0.85
-    f_front = (hip[0] + stance, FOOT_Y)
-    f_back = (hip[0] - stance, FOOT_Y)
+    f_front = (hip[0] + stance * 0.72 + PROFILE_FOOT_DX, FOOT_Y)
+    f_back = (hip[0] - stance * 0.92, FOOT_Y)
 
     # ---------------- board (under the feet, angle readable)
     if pose.board_visible:
@@ -354,41 +364,63 @@ def skater_frame(skin: Skin, pose: Pose, facing: int = 1) -> Image.Image:
                  [(cx + 4.5, top - 2), (cx + 8, top - 7), (cx + 8.5, top - 1)])
 
     # ---------------- eyes / headgear
+    # A 3/4 side view: the NEAR eye is drawn full size toward the leading edge, the FAR eye is one
+    # pixel narrower and sits back. Two identical mirrored eyes are what made the head read as a
+    # flat front-on mask at 40-48 px.
+    near_x = cx + 2.0
+    far_x = cx - 4.6
+
     if skin.headgear == "visor":
         # 2-3 px tall rainbow strip across the face, white crescent underneath
         cols = ("#12d4e0", "#5a7f64", "#e8a93a", "#e0245e")
         for i, c in enumerate(cols):
             rect(d, cx - head_r + 1.5 + i * (head_r / 2), ey - 2.5, head_r / 2 + 0.6, 3, hx(c))
-        rect(d, cx - 4, ey + 0.5, 4, 1.6, WHITE)
-        rect(d, cx + 1, ey + 0.5, 4, 1.6, WHITE)
+        # crescent eyes read through the visor, near one brighter
+        rect(d, near_x, ey + 0.5, 4, 1.6, WHITE)
+        rect(d, far_x, ey + 0.5, 3, 1.6, hx("#adb18c"))
     else:
         # white half-lidded crescent eyes: a bright block with a shadowed lower lid
-        for ex in (-4.6, 1.6):
-            rect(d, cx + ex, ey - 1.5, 4, 3, WHITE)
-            rect(d, cx + ex, ey + 1.4, 4, 1.2, SHADOW)
+        rect(d, near_x, ey - 1.5, 4, 3.2, WHITE)
+        rect(d, near_x, ey + 1.4, 4, 1.2, SHADOW)
+        rect(d, far_x, ey - 1.2, 3, 2.6, WHITE)
+        rect(d, far_x, ey + 1.2, 3, 1, SHADOW)
         if skin.headgear == "goggles":
-            for gx in (-5, 2.5):
-                ellipse(d, cx + gx + 1.4, ey + 0.4, 4.0, 3.8, hx("#502120"))
-                ellipse(d, cx + gx + 1.4, ey + 0.4, 3.1, 2.9, skin.accent)
-                rect(d, cx + gx - 0.4, ey - 1.4, 1.6, 1.6, hx("#f9c588"))
+            for gx, r in ((near_x - 0.4, 4.0), (far_x + 0.4, 3.2)):
+                ellipse(d, gx + 1.6, ey + 0.4, r, r * 0.95, hx("#502120"))
+                ellipse(d, gx + 1.6, ey + 0.4, r - 0.9, r - 0.9, skin.accent)
+                rect(d, gx + 0.6, ey - 1.4, 1.6, 1.6, hx("#f9c588"))
             rect(d, cx - head_r, cy - head_r * 0.85, head_r * 2, 1.6, hx("#c79a5b"))
         elif skin.headgear == "glasses":
-            for gx in (-5, 2.5):
-                d.rectangle([round(cx + gx) - 3, round(ey) - 3, round(cx + gx) + 3, round(ey) + 3],
-                            outline=WHITE + (255,), width=1)
+            # LOOP: ROUND clear glasses over closed-eye arcs, not a rectangular visor. Drawn as two
+            # small circles so the shape reads at 40-48 px; a square outline read as a screen.
+            for gx, r in ((near_x + 0.6, 3.2), (far_x + 1.0, 2.6)):
+                ellipse(d, gx, ey + 0.2, r, r, hx("#a28c89"))          # rim
+                ellipse(d, gx, ey + 0.2, r - 1.0, r - 1.0, hx("#f4f0e8"))  # clear lens
+                # closed-eye arc inside the lens
+                rect(d, gx - (r - 1.4), ey + 0.4, (r - 1.4) * 2, 1.2, BLACK)
+                rect(d, gx - (r - 1.4), ey - 0.6, (r - 1.4), 0.9, hx("#adb18c"))
+            # bridge between the lenses
+            rect(d, far_x + 3.2, ey + 0.4, 2.4, 1, hx("#a28c89"))
+
+    # muzzle: a 2 px brow/nose notch on the leading edge. Cat heads need this or the face is a hole.
+    if skin.headgear != "visor":
+        rect(d, cx + head_r - 1.2, ey + 2.4, 3.2, 2.2, BLACK)
+        rect(d, cx + head_r + 0.6, ey + 2.8, 1.4, 1.2, hx("#3e3134"))
 
     if skin.headgear == "headphones":
-        # Band sits LOW on the crown so it does not compete with the ears.
-        rect(d, cx - head_r - 1, cy - head_r * 0.45, head_r * 2 + 2, 2, skin.accent)
-        rect(d, cx - head_r - 1, cy - head_r * 0.45 + 2, head_r * 2 + 2, 1, skin.accent_dark)
+        # Band sits HIGH on the crown: at cy-0.45*head_r it covered the brow and RIFF's white
+        # crescent eyes disappeared into the head, leaving a featureless black mask.
+        rect(d, cx - head_r - 1, cy - head_r * 0.72, head_r * 2 + 2, 2, skin.accent)
+        rect(d, cx - head_r - 1, cy - head_r * 0.72 + 2, head_r * 2 + 2, 1, skin.accent_dark)
         for side in (-1, 1):
             ex = cx + side * (head_r + 1.5)
             rect(d, ex - 2.5, cy - 4, 5, 7.5, skin.accent)
             rect(d, ex - 2.5, cy - 4, 1.5, 7.5, skin.accent_dark)
         rect(d, cx + head_r + 3, cy + 1, 1.4, 9, skin.accent_dark)
     elif skin.headgear == "glasses":
-        # teal cups + silver arm (LOOP)
-        rect(d, cx - head_r - 1, cy - head_r * 0.45, head_r * 2 + 2, 2, skin.accent)
+        # teal cups + silver arm (LOOP). Raised off the brow (cy-0.45*head_r) because that band sat
+        # directly over the eye row and made the round glasses read as one wide rectangular visor.
+        rect(d, cx - head_r - 1, cy - head_r * 0.80, head_r * 2 + 2, 2, skin.accent)
         for side in (-1, 1):
             ex = cx + side * (head_r + 1.5)
             rect(d, ex - 2.5, cy - 4, 5, 7, skin.accent)

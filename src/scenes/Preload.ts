@@ -25,6 +25,10 @@ export class Preload extends Phaser.Scene {
     // Owner-supplied reference portraits: the brief's "style target for the menu portrait".
     for (const c of ['riff', 'prism', 'brass', 'loop']) {
       this.load.image(`portrait_${c}`, `assets/portraits/${c}_128.png`);
+      // HUD portrait (32x32, 1:1 in-game) and the character-select plate (64x64), both cropped
+      // from the owner's own reference panels by tools/gen_portraits.py.
+      this.load.image(`head_${c}`, `assets/portraits/head_${c}.png`);
+      this.load.image(`head_${c}_2x`, `assets/portraits/head_${c}_2x.png`);
     }
     this.load.image('ref_env_subway', 'assets/ref_scaled/ref_env_subway.png');
     this.load.image('ref_env_alley', 'assets/ref_scaled/ref_env_alley.png');

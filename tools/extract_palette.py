@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Extract the master 32-colour palette from the reference images (median-cut).
 
-Usage: python3 tools/extract_palette.py docs/refs/*.png  -> public/assets/palette.json
+Usage: python3 tools/extract_palette.py spec/refs/*.png  -> public/assets/palette.json
 """
 import json
 import sys

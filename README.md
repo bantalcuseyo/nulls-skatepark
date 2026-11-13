@@ -98,7 +98,7 @@ tests/            30 Vitest unit + integration tests over the pure sim
   direction key held through a launch or a pop is treated as locomotion until it is released and
   re-pressed. Deliberate spins still work.
 - **All art and audio are generated.** `tools/*.py` build the sprite sheets, environments, props,
-  font and palette from `docs/refs/`; `AudioManager` synthesises every sound and music loop at
+  font and palette from `spec/refs/`; `AudioManager` synthesises every sound and music loop at
   runtime. Total download is 2.3 MB.
 
 ## Deploy

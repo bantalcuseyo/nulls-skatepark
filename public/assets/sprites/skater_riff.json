@@ -4,42 +4,126 @@
     "idle": {
       "row": 0,
       "frames": 4,
-      "fps": 8,
+      "fps": 6,
       "loop": true
     },
     "push": {
       "row": 1,
-      "frames": 4,
-      "fps": 8,
+      "frames": 6,
+      "fps": 10,
       "loop": true
     },
     "roll": {
       "row": 2,
       "frames": 2,
+      "fps": 6,
+      "loop": true
+    },
+    "brake": {
+      "row": 3,
+      "frames": 3,
       "fps": 8,
       "loop": true
     },
+    "turn": {
+      "row": 4,
+      "frames": 3,
+      "fps": 10,
+      "loop": false
+    },
+    "land": {
+      "row": 5,
+      "frames": 3,
+      "fps": 12,
+      "loop": false
+    },
+    "ollie": {
+      "row": 6,
+      "frames": 3,
+      "fps": 14,
+      "loop": false
+    },
     "air": {
-      "row": 3,
-      "frames": 2,
+      "row": 7,
+      "frames": 3,
       "fps": 8,
       "loop": true
     },
     "flip": {
-      "row": 4,
+      "row": 8,
+      "frames": 6,
+      "fps": 18,
+      "loop": false
+    },
+    "grab_indy": {
+      "row": 9,
       "frames": 3,
-      "fps": 8,
+      "fps": 10,
+      "loop": false
+    },
+    "grab_melon": {
+      "row": 10,
+      "frames": 3,
+      "fps": 10,
+      "loop": false
+    },
+    "grab_method": {
+      "row": 11,
+      "frames": 3,
+      "fps": 10,
       "loop": false
     },
     "grind": {
-      "row": 5,
+      "row": 12,
       "frames": 2,
       "fps": 8,
       "loop": true
     },
-    "bail": {
-      "row": 6,
+    "grind_wobble_l": {
+      "row": 13,
+      "frames": 1,
+      "fps": 8,
+      "loop": false
+    },
+    "grind_wobble_r": {
+      "row": 14,
+      "frames": 1,
+      "fps": 8,
+      "loop": false
+    },
+    "manual": {
+      "row": 15,
       "frames": 2,
+      "fps": 8,
+      "loop": true
+    },
+    "nose_manual": {
+      "row": 16,
+      "frames": 2,
+      "fps": 8,
+      "loop": true
+    },
+    "bail_slam": {
+      "row": 17,
+      "frames": 5,
+      "fps": 14,
+      "loop": false
+    },
+    "getup": {
+      "row": 18,
+      "frames": 6,
+      "fps": 10,
+      "loop": false
+    },
+    "special": {
+      "row": 19,
+      "frames": 8,
+      "fps": 14,
+      "loop": false
+    },
+    "victory": {
+      "row": 20,
+      "frames": 4,
       "fps": 8,
       "loop": false
     }

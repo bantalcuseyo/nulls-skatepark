@@ -2,7 +2,7 @@
 """Downscale the reference images to 480x270 (LANCZOS) and quantize to palette.json.
 
 Usage: python3 tools/downscale_refs.py  -> public/assets/ref_scaled/*.png
-Sources: docs/refs/pdf_p15_0.png (alley), pdf_p16_0.png (subway), pdf_p17_0.png (warehouse).
+Sources: spec/refs/pdf_p15_0.png (alley), pdf_p16_0.png (subway), pdf_p17_0.png (warehouse).
 """
 import json
 from pathlib import Path
@@ -10,7 +10,7 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "docs/refs"
+SRC = ROOT / "spec/refs"
 OUT = ROOT / "public/assets/ref_scaled"
 PAL = ROOT / "public/assets/palette.json"
 

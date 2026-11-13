@@ -10,61 +10,61 @@
   "ground": [
     {
       "x": 0,
-      "y": 220,
+      "y": 208,
       "type": "flat"
     },
     {
       "x": 300,
-      "y": 220,
+      "y": 208,
       "type": "flat"
     },
     {
       "x": 480,
-      "y": 220,
+      "y": 208,
       "type": "flat"
     },
     {
       "x": 700,
-      "y": 220,
+      "y": 208,
       "type": "flat"
     },
     {
       "x": 1000,
-      "y": 220,
+      "y": 208,
       "type": "flat"
     },
     {
       "x": 1400,
-      "y": 220,
+      "y": 208,
       "type": "flat"
     },
     {
       "x": 1800,
-      "y": 220,
+      "y": 208,
       "type": "flat"
     },
     {
       "x": 2200,
-      "y": 220,
+      "y": 208,
       "type": "flat"
     },
     {
       "x": 2600,
-      "y": 220,
+      "y": 208,
       "type": "flat"
     }
   ],
   "kickers": [
     {
       "x": 340,
-      "baseY": 220,
+      "baseY": 208,
       "run": 60,
       "rise": 26,
       "mirror": false
     },
     {
       "x": 1180,
-      "baseY": 220,
+      "baseY": 208,
       "run": 60,
       "rise": 26,
       "mirror": false
@@ -73,14 +73,14 @@
   "quarters": [
     {
       "x": 880,
-      "baseY": 220,
+      "baseY": 208,
       "run": 90,
       "rise": 110,
       "mirror": false
     },
     {
       "x": 1560,
-      "baseY": 220,
+      "baseY": 208,
       "run": 90,
       "rise": 110,
       "mirror": false
@@ -89,12 +89,12 @@
   "platforms": [
     {
       "x": 970,
-      "y": 110,
+      "y": 98,
       "to": 1100
     },
     {
       "x": 1650,
-      "y": 110,
+      "y": 98,
       "to": 1760
     }
   ],
@@ -103,60 +103,60 @@
       "type": "rail",
       "id": "rail1",
       "x": 560,
-      "y": 200,
+      "y": 188,
       "len": 110
     },
     {
       "type": "rail",
       "id": "rail2",
       "x": 1240,
-      "y": 200,
+      "y": 188,
       "len": 110
     },
     {
       "type": "rail",
       "id": "rail3",
       "x": 1980,
-      "y": 200,
+      "y": 188,
       "len": 110
     },
     {
       "type": "dumpster",
       "id": "dump1",
       "x": 740,
-      "y": 192
+      "y": 180
     },
     {
       "type": "dumpster",
       "id": "dump2",
       "x": 1780,
-      "y": 192
+      "y": 180
     },
     {
       "type": "flatrail",
       "id": "curb1",
       "x": 1000,
-      "y": 216,
+      "y": 204,
       "len": 120
     },
     {
       "type": "flatrail",
       "id": "curb2",
       "x": 2140,
-      "y": 216,
+      "y": 204,
       "len": 120
     },
     {
       "type": "barrier",
       "id": "bar1",
       "x": 1400,
-      "y": 200
+      "y": 188
     },
     {
       "type": "manualpad",
       "id": "mp1",
       "x": 2320,
-      "y": 220
+      "y": 208
     }
   ],
   "gaps": [
@@ -188,41 +188,41 @@
       "type": "letter",
       "char": "S",
       "x": 392,
-      "y": 180
+      "y": 168
     },
     {
       "id": "lK",
       "type": "letter",
       "char": "K",
       "x": 600,
-      "y": 178
+      "y": 166
     },
     {
       "id": "lA",
       "type": "letter",
       "char": "A",
       "x": 930,
-      "y": 78
+      "y": 66
     },
     {
       "id": "lT",
       "type": "letter",
       "char": "T",
       "x": 1600,
-      "y": 58
+      "y": 46
     },
     {
       "id": "lE",
       "type": "letter",
       "char": "E",
       "x": 2030,
-      "y": 182
+      "y": 170
     },
     {
       "id": "secret",
       "type": "secret",
       "x": 1010,
-      "y": 74
+      "y": 62
     }
   ],
   "hazards": [

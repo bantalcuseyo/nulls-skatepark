@@ -14,6 +14,12 @@ export class Pause extends Phaser.Scene {
 
   create(): void {
     const W = this.scale.width;
+    // Phaser REUSES the scene instance, so these fields survive the previous pause. Without this
+    // reset the second pause measured destroyed BitmapText objects (`null.scaleX`) inside refresh(),
+    // threw, and left the game paused with no overlay — the reported second-pause soft-lock.
+    this.items = [];
+    this.actions = [];
+    this.idx = 0;
     this.add.rectangle(0, 0, W, 270, 0x0c1226, 0.75).setOrigin(0, 0);
     const t = new PixelText(this, 0, 60, strings.pause, 2).setTint(0xe0245e);
     t.obj.setPosition(Math.round((W - t.width) / 2), 60);
@@ -49,6 +55,7 @@ export class Pause extends Phaser.Scene {
 
   private refresh(): void {
     this.items.forEach((it, i) => {
+      if (!it?.obj?.frame) return;      // destroyed by a previous pause: skip, never measure
       it.setText((i === this.idx ? '> ' : '  ') + it.obj.text.replace(/^[><] /, '').replace(/^  /, ''));
       it.obj.setPosition(Math.round((this.scale.width - it.width) / 2), it.obj.y);
     });

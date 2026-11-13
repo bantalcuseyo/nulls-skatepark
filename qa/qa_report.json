@@ -1,0 +1,93 @@
+{
+  "results": {
+    "select_riff": true,
+    "hud_riff": {
+      "char": "riff",
+      "level": "alley",
+      "x": 243,
+      "y": 124,
+      "state": "air",
+      "health": 100,
+      "stamina": 63,
+      "score": 0,
+      "bails": 0,
+      "meter": 0,
+      "bailedOut": false,
+      "anim": "flip"
+    },
+    "select_prism": true,
+    "hud_prism": {
+      "char": "prism",
+      "level": "alley",
+      "x": 247,
+      "y": 115,
+      "state": "air",
+      "health": 100,
+      "stamina": 63,
+      "score": 0,
+      "bails": 0,
+      "meter": 0,
+      "bailedOut": false,
+      "anim": "flip"
+    },
+    "select_brass": true,
+    "hud_brass": {
+      "char": "brass",
+      "level": "alley",
+      "x": 234,
+      "y": 131,
+      "state": "air",
+      "health": 100,
+      "stamina": 62,
+      "score": 0,
+      "bails": 0,
+      "meter": 0,
+      "bailedOut": false,
+      "anim": "flip"
+    },
+    "select_loop": true,
+    "hud_loop": {
+      "char": "loop",
+      "level": "alley",
+      "x": 249,
+      "y": 133,
+      "state": "air",
+      "health": 100,
+      "stamina": 65,
+      "score": 0,
+      "bails": 0,
+      "meter": 0,
+      "bailedOut": false,
+      "anim": "flip"
+    },
+    "health_trace": [
+      75,
+      50,
+      25,
+      0
+    ],
+    "bailed_out": true,
+    "score_kept": 0,
+    "retry_after_bailed_out": true,
+    "stamina_after_ollies": 50,
+    "stamina_after_roll": 100,
+    "pause": {
+      "paused_once": true,
+      "resumed": true,
+      "paused_twice": true,
+      "resumed_twice": true
+    },
+    "run_complete": true,
+    "retry_after_complete": true
+  },
+  "console_errors": [
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "errors": []
+}

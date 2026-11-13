@@ -88,6 +88,18 @@ export class SkaterSim {
   tricksLanded = 0;
   gapInFlight: GapDef | null = null;
 
+  // --- vitals (brief step 3: HEALTH and STAMINA are real mechanics)
+  health = PHYS.healthMax;
+  stamina = PHYS.staminaMax;
+  bailedOut = false;
+  /** Screenshake/bark cooldown so a rolling hazard cannot drain 100 hp in one contact. */
+  hazardCooldown = 0;
+  /** Cooldown between paid push strokes. */
+  pushCooldown = 0;
+  /** Bars animate toward the real value instead of jumping; the HUD owns the interpolation. */
+  healthShown = PHYS.healthMax;
+  staminaShown = PHYS.staminaMax;
+
   constructor(
     public terrain: TerrainData,
     public gaps: GapDef[],
@@ -123,10 +135,63 @@ export class SkaterSim {
     this.sprayCans = 0;
     this.bails = 0;
     this.tricksLanded = 0;
+    this.health = PHYS.healthMax;
+    this.stamina = PHYS.staminaMax;
+    this.healthShown = this.health;
+    this.staminaShown = this.stamina;
+    this.bailedOut = false;
+    this.hazardCooldown = 0;
+    this.pushCooldown = 0;
   }
 
   private emit(kind: string, data?: Record<string, unknown>): void {
     this.events.onEvent?.(kind, data);
+  }
+
+  // ---------------------------------------------------------------- vitals
+  /** Stamina is spent at the moment a trick commits to the air, not on the keypress. */
+  get staminaLocked(): boolean {
+    return this.stamina < PHYS.staminaLockout;
+  }
+
+  private spendStamina(cost: number): void {
+    this.stamina = Math.max(0, this.stamina - cost);
+  }
+
+  private regenStamina(dt: number): void {
+    if (this.stamina < PHYS.staminaMax) {
+      this.stamina = Math.min(PHYS.staminaMax, this.stamina + PHYS.staminaRegen * dt);
+    }
+  }
+
+  /** -25 health for a bail. At 0 the run ends (BAILED OUT) instead of respawning. */
+  private applyBailCost(): void {
+    this.health = Math.max(0, this.health - PHYS.healthBailCost);
+    this.emit('health', { value: this.health, delta: -PHYS.healthBailCost });
+    if (this.health <= 0) {
+      this.bailedOut = true;
+      this.emit('bailed_out', { score: this.score });
+    }
+  }
+
+  /** Rolling hazard contact (-10 health, rate-limited so one bump is one cost). */
+  hitHazard(): void {
+    if (this.state === 'bail' || this.bailedOut || this.hazardCooldown > 0) return;
+    this.health = Math.max(0, this.health - PHYS.healthHazardCost);
+    this.hazardCooldown = 0.8;
+    this.vx *= 0.55;
+    this.emit('hazard', { value: this.health, delta: -PHYS.healthHazardCost });
+    if (this.health <= 0) {
+      this.bailedOut = true;
+      this.emit('bailed_out', { score: this.score });
+    }
+  }
+
+  /** Clean landing after a scored trick gives health back (capped at 100). */
+  private applyCleanLandBonus(): void {
+    if (!this.combo.active || this.health >= PHYS.healthMax) return;
+    this.health = Math.min(PHYS.healthMax, this.health + PHYS.healthCleanLandBonus);
+    this.emit('health', { value: this.health, delta: PHYS.healthCleanLandBonus });
   }
 
   get maxSpeed(): number {
@@ -151,6 +216,10 @@ export class SkaterSim {
   step(dt: number, input: InputFrame): void {
     this.runTime += dt;
     if (this.justLanded > 0) this.justLanded--;
+    if (this.hazardCooldown > 0) this.hazardCooldown -= dt;
+    if (this.pushCooldown > 0) this.pushCooldown -= dt;
+    // HEALTH 0 ends the run: the sim freezes in place so the Game scene can show BAILED OUT.
+    if (this.bailedOut) return;
     if (this.state === 'bail') {
       this.bailTimer -= dt;
       if (this.bailTimer <= 0) this.respawn();
@@ -206,6 +275,12 @@ export class SkaterSim {
     const back = held.brakeBack;
     const dir = this.facing;
     if (forward) {
+      // Pushing is a stroke, not a continuous drain: one charge per stroke, and SPD makes it cheaper.
+      if (this.pushCooldown <= 0) {
+        this.pushCooldown = PHYS.pushStrokeTime;
+        const spdScale = 1 - ((this.stats.speed - 1) / 4) * 0.4;
+        this.spendStamina(PHYS.staminaPushCost * spdScale);
+      }
       this.vx += dir * PHYS.pushAccel * (0.9 + ((this.stats.speed - 1) / 4) * 0.25) * dt;
       this.anim = 'push';
     } else if (back) {
@@ -222,6 +297,8 @@ export class SkaterSim {
       this.vx = Math.abs(this.vx) <= f ? 0 : this.vx - Math.sign(this.vx) * f;
       this.anim = held.crouch ? 'roll' : Math.abs(this.vx) > 30 ? 'roll' : 'idle';
     }
+    // Rolling on the ground without pushing refills STAMINA.
+    if (!forward && Math.abs(this.vx) > 12) this.regenStamina(dt);
 
     // slope gravity
     this.vx += -g.slope * 320 * dt;
@@ -318,6 +395,12 @@ export class SkaterSim {
 
   private startOllieCharge(): void {
     if (this.ollieCharging) return;
+    // STAMINA < 15 locks out ollie / flip / grab; the HUD flashes the bar so the player knows why.
+    if (this.staminaLocked) {
+      this.jumpBuffer = 0;
+      this.emit('stamina_locked');
+      return;
+    }
     this.ollieCharging = true;
     this.ollieHold = 0;
     this.jumpBuffer = 0;
@@ -328,6 +411,7 @@ export class SkaterSim {
     // A direction held through the pop is locomotion (you were accelerating), not a spin
     // request. Without this, holding "push" on a d-pad makes every ollie auto-frontflip.
     if (this.lastDirHeld) this.rotHoldLock = true;
+    this.spendStamina(PHYS.staminaOllieCost);
     const t = Math.min(1, this.ollieHold / PHYS.ollieHoldTime);
     const imp = this.ollieImpulse + (PHYS.ollieImpulseMax - PHYS.ollieImpulseTap) * t * (0.9 + ((this.stats.air - 1) / 4) * 0.2);
     this.vy = -imp;
@@ -399,8 +483,10 @@ export class SkaterSim {
     if (!this.trick) {
       const grabInput = this.trickBuffer?.action === 'grab';
       if (grabInput) {
+        if (this.staminaLocked) { this.trickBuffer = null; this.emit('stamina_locked'); return; }
         const def = selectTrick('grab', this.trickBuffer!.dirX, this.trickBuffer!.dirY);
         if (def) {
+          this.spendStamina(PHYS.staminaTrickCost);
           this.trick = makeActive(def, 'grab');
           this.trickBuffer = null;
           this.emit('trick_start', { id: def.id });
@@ -449,8 +535,10 @@ export class SkaterSim {
     if (!this.trickBuffer) return;
     const b = this.trickBuffer;
     if (b.action === 'flip' && this.state === 'air' && !this.trick) {
+      if (this.staminaLocked) { this.trickBuffer = null; this.emit('stamina_locked'); return; }
       const def = selectTrick('flip', b.dirX, b.dirY);
       if (def) {
+        this.spendStamina(PHYS.staminaTrickCost);
         this.trick = makeActive(def, 'flip');
         this.trick.duration = flipDuration(def.duration, this.stats.flip);
         this.anim = def.anim;
@@ -511,6 +599,9 @@ export class SkaterSim {
     this.grindTime += dt;
     this.x += this.vx * dt;
     const nudge = (input.held.brakeBack ? -1 : 0) + (input.held.pushForward ? 1 : 0);
+    // Grinding burns STAMINA at 20/s, slowed by BAL: a 5-balance skater drains at 60 %.
+    const balScale = 1 - ((this.stats.balance - 1) / 4) * 0.4;
+    this.spendStamina(PHYS.staminaGrindDrain * balScale * dt);
     // Long Hauler special: Brass freezes the meter while his special is running.
     if (!(this.specialActive && this.characterId === 'brass')) {
       this.balance.step(dt, nudge, this.stats.balance, this.assist);
@@ -697,6 +788,7 @@ export class SkaterSim {
     } else {
       this.vx += this.facing * PHYS.landingSpeedBonus;
       this.specialMeter = Math.min(PHYS.specialMeterMax, this.specialMeter + 4);
+      this.applyCleanLandBonus();
       this.emit('land_clean', { airTime: this.airTime });
     }
     this.anim = 'land';
@@ -723,10 +815,13 @@ export class SkaterSim {
     this.bails++;
     this.anim = 'bail_slam';
     this.animTime = 0;
+    // A bail costs health AND the combo. At 0 the run is over (Game shows BAILED OUT).
+    this.applyBailCost();
     this.emit('bail', { reason });
   }
 
   private respawn(): void {
+    if (this.bailedOut) return;
     this.x = this.lastSafeX;
     this.ridingIndex = -1;
     const g = surfaceAt(this.terrain, this.x, 400, false);
@@ -808,7 +903,10 @@ export class SkaterSim {
   }
 
   /** Snapshot used by the HUD and tests. */
-  hud(): { score: number; combo: string; multiplier: number; pending: number; meter: number; balance: number; letters: number; state: SkaterState } {
+  hud(): {
+    score: number; combo: string; multiplier: number; pending: number; meter: number; balance: number;
+    letters: number; state: SkaterState; health: number; stamina: number; staminaLocked: boolean;
+  } {
     return {
       score: this.score,
       combo: this.comboLabel,
@@ -818,6 +916,9 @@ export class SkaterSim {
       balance: this.balance.value,
       letters: this.letters.size,
       state: this.state,
+      health: this.health,
+      stamina: this.stamina,
+      staminaLocked: this.staminaLocked,
     };
   }
 }

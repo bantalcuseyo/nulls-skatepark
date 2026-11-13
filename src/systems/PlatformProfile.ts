@@ -12,7 +12,7 @@ export function detectProfile(win: Window = window): PlatformProfileInfo {
     writeOverride('auto');
   }
   const forced = qp === 'phone' || qp === 'desktop' ? qp : null;
-  const touch = forced === 'phone' || 'ontouchstart' in win || (navigator.maxTouchPoints ?? 0) > 0;
+  const touch = forced === 'phone' || (forced !== 'desktop' && ('ontouchstart' in win || (navigator.maxTouchPoints ?? 0) > 0));
   const w = win.innerWidth;
   const h = win.innerHeight;
   const landscape = w >= h;

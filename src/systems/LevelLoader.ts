@@ -6,6 +6,8 @@ export interface LevelProp {
   type: string; id: string; x: number; y: number; len?: number;
 }
 export interface LevelLayer { key: string; scroll: number }
+/** A painted ground band that scrolls 1:1 with the camera; its ride line must equal the level ground y. */
+export interface GroundBand { key: string; y: number }
 export interface LevelGoal { id: string; type: string; target: number; label: string }
 export interface LevelHazard { type: string; x?: number; interval?: number; range?: number; len?: number; speed?: number }
 export interface LevelDef {
@@ -20,6 +22,7 @@ export interface LevelDef {
   collectibles: CollectibleDef[];
   hazards: LevelHazard[];
   layers: LevelLayer[];
+  groundBand?: GroundBand;
   bailZones: { x0: number; x1: number; y: number }[];
   goals: LevelGoal[];
 }
