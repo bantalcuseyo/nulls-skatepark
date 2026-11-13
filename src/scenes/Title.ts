@@ -104,84 +104,146 @@ export class Title extends Phaser.Scene {
     this.screen = 'chars';
     this.clearItems();
     this.titleText.setText(strings.charSelect).setVisible(true);
-    this.titleText.obj.setPosition(Math.round((this.scale.width - this.titleText.width) / 2), 20);
-    this.hint.setText('LEFT/RIGHT STATS  ENTER SELECT  ESC BACK');
-    const goals = this.save.totalGoals();
+    this.titleText.obj.setPosition(Math.round((this.scale.width - this.titleText.width) / 2), 12);
+    this.hint.setText('UP/DOWN SKATER   ENTER   ESC BACK');
+    this.hint.obj.setPosition(8, 256);
+
+    // Two explicit columns that cannot collide:
+    //   left  x=16..190  -> the skater list
+    //   right x=210..W-16 -> portrait, name, description, stats
+    const LIST_X = 16;
+    const LIST_Y = 48;
+    const ROW_H = 20;
     charactersData.forEach((c, i) => {
       const unlocked = this.save.isCharacterUnlocked(c.id, c.unlockGoals);
-      const label = unlocked ? c.name : `${c.name} (${strings.locked}: ${c.unlockGoals})`;
-      this.addItem(c.id, label, 66 + i * 26, () => {
+      const label = unlocked ? c.name : `${c.name} ${c.unlockGoals}`;
+      const y = LIST_Y + i * ROW_H;
+      const item = new PixelText(this, LIST_X, y, `  ${label}`, UI.micro)
+        .setTint(unlocked ? UI.cream : UI.dim).setDepth(1002);
+      item.obj.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+        this.idx = i;
+        this.refresh();
+        this.showCharStats();
+        if (unlocked) this.choose();
+      });
+      this.items.push({ label: item, id: c.id, action: () => {
         if (!unlocked) return;
         this.selectedChar = c.id;
         this.save.data.selectedCharacter = c.id;
         this.save.save();
         this.audio.play('menu_confirm');
         this.showLevels();
-      }, unlocked ? 0xf4f0e8 : 0x53514a);
+      } });
     });
-    this.idx = charactersData.findIndex((c) => c.id === this.selectedChar);
-    if (this.idx < 0) this.idx = 0;
+    // BACK lives in the list column under the skaters, not in the info column.
+    this.addItem('back', strings.back, 48 + charactersData.length * 20 + 8, () => this.showMain(), UI.grey);
+
+    this.idx = Math.max(0, charactersData.findIndex((c) => c.id === this.selectedChar));
     this.refresh();
     this.showCharStats();
-    void goals;
   }
 
   private statGfx?: Phaser.GameObjects.Graphics;
 
+  /** Right-hand info column: portrait, name, description, stat rows. Rebuilt from scratch each time. */
   private showCharStats(): void {
     const c = charactersData[this.idx] ?? charactersData[0];
     if (this.screen !== 'chars') return;
 
-    // Everything this panel draws is destroyed and rebuilt on each selection, so no text from the
-    // previously highlighted skater can survive (that ghost text was the old, never-cleared label).
+    // Destroy everything this panel owns first — leftover text from the previous skater is exactly
+    // the "ghost text" that made the screen look broken.
     this.statGfx?.destroy();
+    this.statGfx = undefined;
     for (const l of this.statLabels ?? []) l.destroy();
     this.statLabels = [];
     this.portrait?.destroy();
 
     const W = this.scale.width;
-    const cx = Math.round(W * 0.5);
+    const colX = Math.round(W * 0.63);          // right column centre
+    const colW = W - colX - 12;                 // usable width to the right edge
 
-    // portrait, centred above the stats
-    this.portrait = this.add.image(cx, 96, `portrait_${c.id}`)
-      .setOrigin(0.5, 0.5).setDisplaySize(84, 84).setDepth(1001);
+    this.portrait = this.add.image(colX, 104, `portrait_${c.id}`)
+      .setOrigin(0.5, 0.5).setDisplaySize(78, 78).setDepth(1001);
 
-    // ONE name line for the highlighted skater (this is what showed "RIFF" over BRASS).
-    const name = new PixelText(this, 0, 142, c.name, UI.h2).setTint(UI.cream).setDepth(1002);
-    name.obj.setPosition(Math.round(cx - name.width / 2), 142);
+    const name = new PixelText(this, 0, 148, c.name, UI.h2).setTint(UI.cream).setDepth(1002);
+    name.obj.setPosition(Math.round(colX - name.width / 2), 148);
     (this.statLabels ??= []).push(name);
 
-    const desc = new PixelText(this, 0, 156, c.desc, UI.micro).setTint(UI.grey).setDepth(1002);
-    desc.obj.setPosition(Math.round(cx - desc.width / 2), 156);
+    const desc = new PixelText(this, 0, 162, c.desc, UI.micro).setTint(UI.grey).setDepth(1002);
+    // wrap the description to the column so it never runs under the list column
+    desc.setText(this.wrap(c.desc, Math.floor(colW / 6)));
+    desc.obj.setPosition(Math.round(colX - desc.width / 2), 162);
     (this.statLabels ??= []).push(desc);
 
-    // stat rows: label on its own fixed column, blocks on a second fixed column, value at the end.
-    // Fixed columns are what stop the labels from colliding with the bars.
     const g = this.add.graphics().setDepth(1001);
     this.statGfx = g;
     const rows: Array<[string, number]> = [['SPD', c.stats.speed], ['AIR', c.stats.air], ['BAL', c.stats.balance], ['FLP', c.stats.flip]];
-    const labelX = cx - 52;
-    const barX = cx - 26;
-    const rowY = 172;
-    const rowH = 9;
+    const rowY = 182;
+    const rowH = 10;
+    const labelX = colX - 42;
+    const barX = colX - 18;
     rows.forEach(([, v], i) => {
       const y = rowY + i * rowH;
       for (let k = 0; k < 5; k++) {
         const x = barX + k * 8;
         g.fillStyle(k < v ? UI.amber : UI.dim, 1);
         g.fillRect(x, y, 6, 5);
-        if (k < v) { g.fillStyle(0xf9c588, 1); g.fillRect(x, y, 6, 1); }
       }
-    });
-    rows.forEach(([label], i) => {
-      const t = new PixelText(this, labelX, rowY + i * rowH, label, UI.micro).setTint(UI.cyan).setDepth(1002);
+      const t = new PixelText(this, labelX, y - 1, rows[i][0], UI.micro).setTint(UI.cyan).setDepth(1002);
       (this.statLabels ??= []).push(t);
     });
 
-    const sp = new PixelText(this, 0, rowY + rows.length * rowH + 4, `SPECIAL: ${c.special}`, UI.micro)
+    const sp = new PixelText(this, 0, rowY + rows.length * rowH + 6, `SPECIAL: ${c.special}`, UI.micro)
       .setTint(UI.green).setDepth(1002);
-    sp.obj.setPosition(Math.round(cx - sp.width / 2), rowY + rows.length * rowH + 4);
+    sp.setText(this.wrap(`SPECIAL: ${c.special}`, Math.floor(colW / 6)));
+    sp.obj.setPosition(Math.round(colX - sp.width / 2), rowY + rows.length * rowH + 6);
     (this.statLabels ??= []).push(sp);
+
+    this.auditOverlaps();
+  }
+
+  /** Greedy word wrap for the bitmap font (no built-in wrapping). */
+  private wrap(text: string, maxChars: number): string {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let cur = '';
+    for (const w of words) {
+      if ((cur + ' ' + w).trim().length <= maxChars) cur = (cur + ' ' + w).trim();
+      else { if (cur) lines.push(cur); cur = w; }
+    }
+    if (cur) lines.push(cur);
+    return lines.join('\n');
+  }
+
+  /**
+   * Runtime readability audit: fails loudly if any two text blocks in the character panel overlap.
+   * This is the check that was missing — the character list used to run straight through the name
+   * line and nothing detected it.
+   */
+  private auditOverlaps(): void {
+    // Scan EVERY visible text object in the scene, so a stray hint or button that lands on another
+    // block is caught here instead of by the player.
+    const sceneTexts = this.children.list
+      .filter((o) => o.type === 'BitmapText' && (o as PixelText['obj']).visible && (o as PixelText['obj']).text)
+      .map((o) => {
+        const b = o as PixelText['obj'];
+        return { label: b.text, x: b.x, y: b.y, w: b.width, h: b.height };
+      });
+    const boxes = sceneTexts.length ? sceneTexts : (this.statLabels ?? []).map((t) => ({
+      label: t.obj.text,
+      x: t.obj.x, y: t.obj.y, w: t.obj.width, h: t.obj.height,
+    }));
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i], b = boxes[j];
+        const overlap = a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+        if (overlap) {
+          console.warn('[UI OVERLAP]', a.label, 'vs', b.label);
+          (window as unknown as { __uiOverlaps?: string[] }).__uiOverlaps ??= [];
+          (window as unknown as { __uiOverlaps: string[] }).__uiOverlaps.push(`${a.label}|${b.label}`);
+        }
+      }
+    }
   }
 
   private statLabels?: PixelText[];
