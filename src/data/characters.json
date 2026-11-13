@@ -1,0 +1,18 @@
+[
+  { "id": "riff", "name": "RIFF", "desc": "All-rounder. Best for new players.",
+    "stats": { "speed": 4, "air": 4, "balance": 3, "flip": 3 },
+    "special": "Pixel Storm", "specialDesc": "Fast flip chain",
+    "unlockGoals": 0, "role": "all-rounder" },
+  { "id": "prism", "name": "PRISM", "desc": "High-air stylist. Rewards big rotations.",
+    "stats": { "speed": 3, "air": 4, "balance": 4, "flip": 4 },
+    "special": "Spectrum Spin", "specialDesc": "Rainbow-trail 720",
+    "unlockGoals": 3, "role": "high-air" },
+  { "id": "brass", "name": "BRASS", "desc": "Grind and manual specialist. Very stable.",
+    "stats": { "speed": 3, "air": 2, "balance": 5, "flip": 2 },
+    "special": "Long Hauler", "specialDesc": "Extended balance-free grind",
+    "unlockGoals": 8, "role": "grind" },
+  { "id": "loop", "name": "LOOP", "desc": "Speedster. Fills the special meter fastest.",
+    "stats": { "speed": 5, "air": 3, "balance": 3, "flip": 1 },
+    "special": "Repeat Mode", "specialDesc": "Self-replaying trick echo",
+    "unlockGoals": 14, "role": "speed" }
+]

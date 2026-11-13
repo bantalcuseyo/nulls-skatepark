@@ -1,0 +1,34 @@
+{
+  "flip": [
+    { "id": "kickflip", "name": "KICKFLIP", "dir": "neutral", "duration": 0.55, "points": 120, "anim": "flip" },
+    { "id": "heelflip", "name": "HEELFLIP", "dir": "down", "duration": 0.6, "points": 140, "anim": "flip" },
+    { "id": "popshove", "name": "POP SHOVE-IT", "dir": "up", "duration": 0.5, "points": 100, "anim": "flip" },
+    { "id": "hardflip", "name": "HARDFLIP", "dir": "forward", "duration": 0.65, "points": 220, "anim": "flip" },
+    { "id": "inwardheel", "name": "INWARD HEELFLIP", "dir": "back", "duration": 0.7, "points": 250, "anim": "flip" }
+  ],
+  "grab": [
+    { "id": "indy", "name": "INDY", "dir": "neutral", "duration": 0, "points": 150, "holdBonus": 100, "anim": "grab_indy" },
+    { "id": "melon", "name": "MELON", "dir": "up", "duration": 0, "points": 180, "holdBonus": 100, "anim": "grab_melon" },
+    { "id": "stalefish", "name": "STALEFISH", "dir": "down", "duration": 0, "points": 200, "holdBonus": 110, "anim": "grab_melon" },
+    { "id": "method", "name": "METHOD", "dir": "forward", "duration": 0, "points": 260, "holdBonus": 120, "anim": "grab_method" },
+    { "id": "mute", "name": "MUTE", "dir": "back", "duration": 0, "points": 280, "holdBonus": 120, "anim": "grab_indy" }
+  ],
+  "grind": [
+    { "id": "5050", "name": "50-50", "dir": "neutral", "duration": 0, "points": 0, "anim": "grind" },
+    { "id": "50", "name": "5-0", "dir": "down", "duration": 0, "points": 0, "anim": "grind" },
+    { "id": "nosegrind", "name": "NOSEGRIND", "dir": "up", "duration": 0, "points": 0, "anim": "grind" },
+    { "id": "boardslide", "name": "BOARDSLIDE", "dir": "forward", "duration": 0, "points": 0, "anim": "grind" },
+    { "id": "tailslide", "name": "TAILSLIDE", "dir": "back", "duration": 0, "points": 0, "anim": "grind" }
+  ],
+  "manual": [
+    { "id": "manual", "name": "MANUAL", "dir": "up", "duration": 0, "points": 0, "anim": "manual" },
+    { "id": "nosemanual", "name": "NOSE MANUAL", "dir": "down", "duration": 0, "points": 0, "anim": "nose_manual" }
+  ],
+  "rotation": [
+    { "id": "frontflip", "name": "FRONTFLIP", "angle": 360, "points": 500 },
+    { "id": "backflip", "name": "BACKFLIP", "angle": -360, "points": 500 },
+    { "id": "front720", "name": "FRONTFLIP 720", "angle": 720, "points": 2000 },
+    { "id": "back720", "name": "BACKFLIP 720", "angle": -720, "points": 2000 }
+  ],
+  "special": { "duration": 1.2, "points": 1500, "multiplierBoost": 2 }
+}
