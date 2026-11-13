@@ -1,200 +1,207 @@
 import Phaser from 'phaser';
 import { PixelText } from '../systems/PixelText';
+import { UI, SAFE } from '../systems/Theme';
 import type { Game } from './Game';
-import strings from '../strings/en.json';
 
-const MAGENTA = 0xe0245e;
-const CYAN = 0x12d4e0;
-const AMBER = 0xe8a93a;
-const CREAM = 0xf4f0e8;
-const GREY = 0x53514a;
-
+/**
+ * HUD layout. Everything is anchored to the screen corners with a fixed 6 px safe margin, and each
+ * block sits on its own opaque plate so text never fights the environment art behind it. Layout is
+ * recomputed on resize so it also holds on the phone profile's wider virtual canvas.
+ */
 export class Hud extends Phaser.Scene {
   private g!: Game;
+  private plates!: Phaser.GameObjects.Graphics;
+  private meters!: Phaser.GameObjects.Graphics;
+
   private score!: PixelText;
   private bestCombo!: PixelText;
-  private comboTotal!: PixelText;
+  private comboLine!: PixelText;
   private timer!: PixelText;
   private letters!: PixelText;
-  private meterGfx!: Phaser.GameObjects.Graphics;
-  private balanceGfx!: Phaser.GameObjects.Graphics;
+  private meterLabel!: PixelText;
   private toast!: PixelText;
   private callout!: PixelText;
   private bankText!: PixelText;
+  private balanceLabel!: PixelText;
+
   private toastT = 0;
   private calloutT = 0;
   private bankT = 0;
   private displayScore = 0;
-  private meterLabel!: PixelText;
-  private panels!: Phaser.GameObjects.Graphics;
-  private comboPlate!: Phaser.GameObjects.Graphics;
 
   constructor() { super('Hud'); }
 
   init(data: { game: Game }): void { this.g = data.game; }
 
   create(): void {
-    const W = this.scale.width;
-    // Solid backing panels. The HUD sits over a bright, busy pixel environment, so every text
-    // block needs its own opaque plate or it disappears against lit windows and neon.
-    this.panels = this.add.graphics().setScrollFactor(0).setDepth(999);
-    this.comboPlate = this.add.graphics().setScrollFactor(0).setDepth(999);
-    this.drawPanels();
-    this.scale.on('resize', () => this.drawPanels());
-    this.score = new PixelText(this, 8, 6, '0', 2).setTint(CREAM);
-    this.bestCombo = new PixelText(this, 8, 22, '', 1).setTint(GREY);
-    this.comboTotal = new PixelText(this, W / 2, 6, '', 1).setTint(AMBER);
-    this.timer = new PixelText(this, W - 8, 6, '2:00', 2).setTint(CREAM);
-    this.timer.obj.setOrigin(1, 0);
-    this.letters = new PixelText(this, W - 8, 26, 'S K A T E', 1).setTint(GREY);
-    this.letters.obj.setOrigin(1, 0);
-    this.meterGfx = this.add.graphics().setScrollFactor(0).setDepth(1000);
-    this.balanceGfx = this.add.graphics().setScrollFactor(0).setDepth(1000);
-    this.meterLabel = new PixelText(this, 8, 238, strings.special, 1).setTint(GREY);
-    this.toast = new PixelText(this, 0, 40, '', 1).setTint(AMBER).setVisible(false);
-    this.callout = new PixelText(this, 0, 54, '', 1).setTint(CYAN).setVisible(false);
-    this.bankText = new PixelText(this, 0, 100, '', 2).setTint(AMBER).setVisible(false);
+    this.plates = this.add.graphics().setScrollFactor(0).setDepth(900);
+    this.meters = this.add.graphics().setScrollFactor(0).setDepth(902);
+
+    this.score = new PixelText(this, 0, 0, '0', UI.h1).setTint(UI.cream);
+    this.bestCombo = new PixelText(this, 0, 0, '', UI.micro).setTint(UI.grey);
+    this.comboLine = new PixelText(this, 0, 0, '', UI.micro).setTint(UI.amber);
+    this.timer = new PixelText(this, 0, 0, '2:00', UI.h1).setTint(UI.cream);
+    this.letters = new PixelText(this, 0, 0, '', UI.micro).setTint(UI.grey);
+    this.meterLabel = new PixelText(this, 0, 0, 'SPECIAL', UI.micro).setTint(UI.grey);
+    this.toast = new PixelText(this, 0, 0, '', UI.micro).setTint(UI.green).setVisible(false);
+    this.callout = new PixelText(this, 0, 0, '', UI.micro).setTint(UI.cyan).setVisible(false);
+    this.bankText = new PixelText(this, 0, 0, '', UI.h1).setTint(UI.amber).setVisible(false);
+    this.balanceLabel = new PixelText(this, 0, 0, 'BALANCE', UI.micro).setTint(UI.grey).setVisible(false);
+
     this.displayScore = 0;
+    this.layout();
+    this.scale.on('resize', () => this.layout());
   }
 
-  /** Opaque plates behind each HUD corner + the combo line. */
-  private drawPanels(): void {
+  /** Recompute all anchored positions. Called on create and on resize. */
+  private layout(): void {
     const W = this.scale.width;
-    const g = this.panels;
+    const right = W - SAFE;
+    this.score.setPosition(SAFE + 4, SAFE + 4);
+    this.bestCombo.setPosition(SAFE + 4, SAFE + 22);
+    this.timer.setPosition(right - this.timer.width - 4, SAFE + 4);
+    this.letters.setPosition(right - 4 - this.letters.width, SAFE + 22);
+    this.meterLabel.setPosition(SAFE + 4, 240);
+    this.drawPlates();
+  }
+
+  /** Opaque plates; widths follow the measured text so nothing overflows. */
+  private drawPlates(): void {
+    const W = this.scale.width;
+    const g = this.plates;
     g.clear();
-    const plate = (x: number, y: number, w: number, h: number): void => {
-      g.fillStyle(0x0c1226, 0.86);
+    const plate = (x: number, y: number, w: number, h: number, border: number = UI.cyan): void => {
+      g.fillStyle(UI.bg, 0.9);
       g.fillRect(x, y, w, h);
-      g.lineStyle(1, 0x12d4e0, 0.55);
+      g.lineStyle(1, border, 0.55);
       g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
     };
-    plate(2, 2, 104, 36);                 // score + best combo
-    plate(W - 76, 2, 74, 34);             // timer + letters
-    plate(2, 236, 110, 22);               // special meter
-    plate(120, 236, 76, 22);              // balance meter
+    // score block (top-left): width follows the score AND the best-combo line
+    const sw = Math.max(96, this.score.width + 16, this.bestCombo.width + 16);
+    plate(SAFE, SAFE, sw, 40);
+    // timer block (top-right): width follows whichever of timer / letters is wider RIGHT NOW,
+    // plus 6 px padding on each side so the glyphs never touch the border
+    const tw = Math.max(64, this.timer.width + 20, this.letters.width + 20);
+    plate(W - SAFE - tw, SAFE, tw, 40);
+    // re-anchor the text inside the final plate so nothing is clipped
+    this.timer.setPosition(W - SAFE - tw + 10, SAFE + 4);
+    this.letters.setPosition(W - SAFE - tw + 10, SAFE + 22);
+    // special meter (bottom-left)
+    plate(SAFE, 236, 104, 20, this.g.sim.specialMeter >= 100 ? UI.amber : UI.dim);
   }
 
   showGoal(label: string): void {
-    this.toast.setText(`${strings.goals}: ${label}`).setVisible(true);
-    this.toast.obj.setPosition(Math.round((this.scale.width - this.toast.width) / 2), 40);
+    const W = this.scale.width;
+    this.toast.setText(label).setVisible(true);
+    this.toast.setPosition(Math.round((W - this.toast.width) / 2), 46);
     this.toastT = 3;
   }
 
   showCallout(text: string): void {
+    const W = this.scale.width;
     this.callout.setText(text).setVisible(true);
-    this.callout.obj.setPosition(Math.round((this.scale.width - this.callout.width) / 2), 54);
+    this.callout.setPosition(Math.round((W - this.callout.width) / 2), 58);
     this.calloutT = 2;
   }
 
   showBank(total: number): void {
-    this.bankText.setText(`+${total.toLocaleString('en-US').replace(/,/g, ',')}`).setVisible(true);
-    this.bankText.obj.setPosition(Math.round((this.scale.width - this.bankText.width) / 2), 90);
+    const W = this.scale.width;
+    this.bankText.setText(`+${total.toLocaleString('en-US')}`).setVisible(true);
+    this.bankText.setPosition(Math.round((W - this.bankText.width) / 2), 96);
     this.bankT = 1.2;
   }
 
   updateHUD(dt: number): void {
     const sim = this.g.sim;
+    const W = this.scale.width;
     const snap = sim.hud();
 
-    // score count-up
+    // score counts up so a big bank reads as an event, not a jump
     if (this.displayScore < snap.score) {
-      this.displayScore = Math.min(snap.score, this.displayScore + Math.max(10, (snap.score - this.displayScore) * dt * 12));
+      this.displayScore = Math.min(snap.score, this.displayScore + Math.max(20, (snap.score - this.displayScore) * dt * 14));
     }
     this.score.setText(Math.floor(this.displayScore).toLocaleString('en-US'));
-    this.bestCombo.setText(sim.bestCombo > 0 ? `${strings.bestCombo} ${sim.bestCombo.toLocaleString('en-US')}` : '').setVisible(sim.bestCombo > 0);
+    this.bestCombo.setText(sim.bestCombo > 0 ? `BEST ${sim.bestCombo.toLocaleString('en-US')}` : '')
+      .setVisible(sim.bestCombo > 0);
 
     // timer
     if (this.g.isFreeSkate) {
-      this.timer.setText('FREE').setTint(CYAN);
+      this.timer.setText('FREE').setTint(UI.cyan);
     } else {
       const t = Math.max(0, this.g.runTimeLeft);
-      const m = Math.floor(t / 60);
-      const s = Math.floor(t % 60);
-      this.timer.setText(`${m}:${s.toString().padStart(2, '0')}`);
-      this.timer.setTint(t < 10 ? (Math.floor(t * 6) % 2 === 0 ? MAGENTA : CREAM) : CREAM);
+      this.timer.setText(`${Math.floor(t / 60)}:${Math.floor(t % 60).toString().padStart(2, '0')}`);
+      this.timer.setTint(t < 10 ? (Math.floor(t * 6) % 2 === 0 ? UI.magenta : UI.cream) : UI.cream);
     }
 
-    // combo line (top centre, up to 4 recent tricks)
-    const entries = sim.combo.entries;
-    const recent = entries.slice(-4);
-    const label = recent.map((e) => e.name).join('+');
-    const mult = snap.multiplier;
-    const pend = snap.pending;
-    this.comboTotal.setText(sim.combo.active ? `${label}  ${pend}x${mult}` : '').setVisible(sim.combo.active);
+    // combo line: one row, sanitised to the ASCII the bitmap font carries
     if (sim.combo.active) {
-      // dynamic plate behind the combo line, clamped inside the safe width
-      const cw = Math.min(this.scale.width - 20, this.comboTotal.width + 12);
-      this.comboPlate.clear();
-      this.comboPlate.fillStyle(0x0c1226, 0.86);
-      this.comboPlate.fillRect(Math.round((this.scale.width - cw) / 2), 2, Math.round(cw), 18);
-      this.comboPlate.lineStyle(1, mult >= 6 ? 0xe0245e : 0xe8a93a, 0.7);
-      this.comboPlate.strokeRect(Math.round((this.scale.width - cw) / 2) + 0.5, 2.5, Math.round(cw) - 1, 17);
+      const names = sim.combo.entries.slice(-3).map((e) => e.name).join('+');
+      const mult = snap.multiplier;
+      this.comboLine
+        .setText(`${names}  ${snap.pending} X${mult}`)
+        .setVisible(true)
+        .setTint(mult >= 6 ? UI.magenta : mult >= 3 ? UI.amber : UI.cream);
+      // keep it centred and inside the safe width
+      const maxW = W - SAFE * 2 - 8;
+      const x = Math.max(SAFE + 4, Math.round((W - Math.min(this.comboLine.width, maxW)) / 2));
+      this.comboLine.setPosition(x, 46);
     } else {
-      this.comboPlate.clear();
-    }
-    if (sim.combo.active) {
-      this.comboTotal.obj.setPosition(Math.max(80, Math.round((this.scale.width - this.comboTotal.width) / 2)), 6);
-      this.comboTotal.setTint(mult >= 6 ? MAGENTA : mult >= 3 ? AMBER : CREAM);
+      this.comboLine.setVisible(false);
     }
 
-    // S-K-A-T-E letters (lit when collected)
-    const all = ['S', 'K', 'A', 'T', 'E'];
+    // S-K-A-T-E tracker
     const got = sim.letters;
-    const text = all.map((c) => (got.has(c) ? c : '-')).join(' ');
-    this.letters.setText(text).setTint(got.size === 5 ? AMBER : GREY);
+    this.letters.setText(['S', 'K', 'A', 'T', 'E'].map((c) => (got.has(c) ? c : '.')).join(' '))
+      .setTint(got.size === 5 ? UI.amber : UI.grey);
+    this.letters.setPosition(W - SAFE - 4 - this.letters.width, SAFE + 22);
 
-    // special meter (bottom-left, under the score on phone)
-    const mg = this.meterGfx;
-    mg.clear();
-    const mx = 8;
-    const my = 246;
-    const mw = 90;
-    mg.fillStyle(0x0c1226, 0.8);
-    mg.fillRect(mx - 2, my - 2, mw + 4, 10);
-    mg.lineStyle(1, snap.meter >= 1 ? AMBER : GREY, 1);
-    mg.strokeRect(mx - 2, my - 2, mw + 4, 10);
-    const fullW = Math.round(mw * Math.min(1, snap.meter));
-    mg.fillStyle(snap.meter >= 1 ? AMBER : MAGENTA, 1);
-    mg.fillRect(mx, my, fullW, 6);
-    if (snap.meter >= 1) {
-      // full: striped pattern so it reads without colour alone
-      mg.lineStyle(1, 0xffffff, 0.8);
-      for (let x = 0; x < fullW; x += 6) mg.lineBetween(mx + x, my, mx + x + 2, my + 6);
-      this.meterLabel.setText('SPECIAL READY (X+C)').setTint(AMBER);
+    // meters
+    const m = this.meters;
+    m.clear();
+    // special (bottom-left)
+    const mx = SAFE + 4;
+    const my = 242;
+    const mw = 92;
+    const pct = Math.min(1, snap.meter);
+    m.fillStyle(UI.dim, 1);
+    m.fillRect(mx, my, mw, 6);
+    m.fillStyle(pct >= 1 ? UI.amber : UI.magenta, 1);
+    m.fillRect(mx, my, Math.round(mw * pct), 6);
+    if (pct >= 1) {
+      m.fillStyle(UI.cream, 0.85);
+      for (let x = 0; x < mw * pct; x += 6) m.fillRect(mx + x, my, 2, 6);
+      this.meterLabel.setText('SPECIAL READY').setTint(UI.amber);
     } else {
-      this.meterLabel.setText(strings.special).setTint(GREY);
+      this.meterLabel.setText('SPECIAL').setTint(UI.grey);
     }
 
-    // balance arc during grind/manual
-    const bg = this.balanceGfx;
-    bg.clear();
+    // balance (only while grinding/manualling) — drawn next to the special bar
     if (sim.state === 'grind' || sim.state === 'manual') {
-      const bx = 120;
-      const by = 246;
-      const bw = 70;
-      bg.fillStyle(0x0c1226, 0.8);
-      bg.fillRect(bx - 2, by - 2, bw + 4, 10);
-      // green zone
-      const zone = 0.35;
-      const zx = bx + bw / 2 - (bw / 2) * zone;
-      bg.fillStyle(0x1f3b2b, 1);
-      bg.fillRect(zx, by, bw * zone, 6);
-      bg.lineStyle(1, GREY, 1);
-      bg.strokeRect(bx - 2, by - 2, bw + 4, 10);
-      const b = sim.balance.value;
-      const nx = bx + bw / 2 + (bw / 2) * b;
-      bg.lineStyle(2, Math.abs(b) > 0.7 ? MAGENTA : AMBER, 1);
-      bg.lineBetween(nx, by - 3, nx, by + 9);
+      const bx = SAFE + 112;
+      const by = 242;
+      const bw = 60;
+      m.fillStyle(UI.dim, 1);
+      m.fillRect(bx, by, bw, 6);
+      m.fillStyle(0x1f3b2b, 1);
+      m.fillRect(bx + bw * 0.33, by, bw * 0.34, 6);
+      const nx = bx + bw / 2 + (bw / 2) * Math.max(-1, Math.min(1, sim.balance.value));
+      m.fillStyle(Math.abs(sim.balance.value) > 0.7 ? UI.magenta : UI.cream, 1);
+      m.fillRect(Math.round(nx) - 1, by - 3, 2, 12);
+      this.balanceLabel.setVisible(true).setPosition(bx, 232);
+    } else {
+      this.balanceLabel.setVisible(false);
     }
 
-    // toasts
+    // transient text
     if (this.toastT > 0) { this.toastT -= dt; if (this.toastT <= 0) this.toast.setVisible(false); }
     if (this.calloutT > 0) { this.calloutT -= dt; if (this.calloutT <= 0) this.callout.setVisible(false); }
     if (this.bankT > 0) {
       this.bankT -= dt;
-      this.bankText.obj.y = 90 - (1.2 - this.bankT) * 16;
-      this.bankText.setAlpha(Math.min(1, this.bankT));
+      this.bankText.obj.y = 96 - (1.2 - this.bankT) * 14;
+      this.bankText.setAlpha(Math.min(1, this.bankT * 1.5));
       if (this.bankT <= 0) this.bankText.setVisible(false);
     }
+    this.drawPlates();
   }
+
 }
