@@ -1,0 +1,1198 @@
+=== PAGE 1 ===
+MASTER BUILD PROMPT  /  FOR AI CODING AGENT  /  v1.1
+NULLS SKATEPARK
+2D pixel-art arcade skateboarding game
+Score-attack  |  Timed runs  |  Combos, grinds, manuals  |  Night-city mood  |  Light, fast, browser-ready
+Working title is a placeholder. All IP must be original.
+Quick start for the human operator
+Give your AI agent (1) this PDF and (2) the reference files listed in Appendix B: the three environment images, the full
+character sheet, and the folder character_refs with one detail sheet per skater. Then send this single message: "Read
+the attached NULLS SKATEPARK master prompt completely. First split it into docs/spec files as described in section
+12.1, then start Milestone M0 and continue milestone by milestone. Follow section 12.1 (agent tiers) and section 13
+(working rules)."
+Read me first (agent)
+This document is your complete project brief: vision, art direction, characters, levels, mechanics, architecture, asset
+pipeline, milestones and acceptance criteria. Treat every section as a requirement unless it is explicitly marked default
+or tunable. Numbers marked tunable are starting values: playtest and adjust them. Build the game autonomously, in
+order, keeping it runnable after every milestone. Ask the human only when genuinely blocked (section 13).
+#
+Contents
+1
+Mission and prime directives
+2
+Game overview
+3
+Technical foundation and platform profiles (desktop / phone)
+4
+Art direction
+5
+Characters (4 playable)
+6
+Environments (3 levels)
+7
+Core gameplay specification
+8
+UI / UX
+9
+Audio
+10
+Architecture and data schemas
+11
+Asset pipeline
+12
+Milestones, acceptance criteria, agent tiers and task routing
+13
+Working rules, defaults and Definition of Done
+A / B
+Appendix A: sprite generation briefs. Appendix B: reference images
+
+
+=== PAGE 2 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 2
+1. Mission and prime directives
+Mission. Build a complete, polished, playable arcade skateboarding game in the spirit of the classic "pro skater"
+score-attack formula (short timed runs, trick combos, grinds, manuals, collectibles, per-level goals, unlockable characters),
+presented as moody nocturnal pixel art that matches the four attached reference images. The game must be light (low
+resolution, small download) but feel like a real, finished game: menus, progression, saving, audio, juice and a satisfying
+skating feel.
+Prime directives
+
+Playable first. The game must run (npm run dev) after every milestone. Never leave the repo broken.
+
+Feel over features. Skating must feel tight, readable and fun within 10 seconds of first play. Spend time tuning.
+
+Light and fast. 480x270 internal resolution, 60 FPS on a low-end laptop and mid-range phone, total download under 20
+MB (aim for under 10 MB).
+
+Two platforms, one game. Desktop and phone are both first-class targets with different input, layout, defaults and
+performance handling (section 3.1).
+
+Small, self-contained tasks. Work in small tasks with explicit files and acceptance checks so that smaller or cheaper
+models can do most of the work (section 12.1).
+
+Match the references. Characters and environments must look like they belong to the same world as the attached
+images (sections 4 to 6).
+
+Data-driven. Levels, tricks, characters, goals, physics values and strings live in JSON so content can be tuned without
+code changes.
+
+Original content only. Do not use the name, logo, characters, music or assets of any existing franchise (including Tony
+Hawk's Pro Skater / Activision). Generic trick names (kickflip, 50-50, etc.) are fine. No copyrighted music or ripped
+assets.
+
+Autonomy with checkpoints. Work through the milestones in section 12 in order. After each: build passes, tests pass,
+commit, update PROGRESS.md.
+2. Game overview
+Genre
+2D side-view arcade skateboarding, score attack (2.5D parallax presentation).
+Session
+2-minute runs per level, instant retry (under 1 second). A free-skate mode without timer.
+Platforms
+Desktop browser and phone browser (landscape), two tuned profiles (section 3.1).
+Modes
+Career (goals per level, unlocks, saved progress) and Free Skate (unlocked levels, no timer, no goals).
+Content scope
+3 levels, 4 playable characters, about 30 tricks (flips, grabs, rotations, grinds, manuals, specials), 6 goals per
+level.
+Tone
+Chill, nocturnal, lo-fi urban skate culture. Family friendly: no violence, no real brands, no real people.
+Pillars
+1 Flow: chain tricks, grinds and manuals into one big combo. 2 Risk and reward: longer air time and bigger
+rotations score more but bail more. 3 Readable and tight: responsive controls, clear feedback. 4
+Atmosphere: neon, dithered light cones, graffiti, great audio.
+Non-goals
+No online multiplayer, accounts, monetization, 3D, or realistic physics simulation.
+3. Technical foundation
+Area
+Requirement (default unless the human overrides)
+Language / engine
+TypeScript + Phaser 3 (3.80 or newer), bundled with Vite. If you strongly prefer another engine (e.g.
+Godot 4 web export, Kaplay), you may, but justify it in DECISIONS.md and keep every other constraint.
+Targets
+Modern desktop and mobile browsers (Chrome, Firefox, Safari, Edge). Static build in dist/ deployable to
+itch.io or GitHub Pages. Fully offline single-player.
+
+
+=== PAGE 3 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 3
+Area
+Requirement (default unless the human overrides)
+Resolution
+480x270 virtual resolution (16:9). Integer scaling (2x, 3x, 4x...) with letterboxing. Nearest-neighbour
+filtering, pixelArt: true, roundPixels: true, antialias off. Sprites and camera snap to whole
+pixels.
+Simulation
+Fixed timestep at 60 Hz with render interpolation. Game logic (skater, tricks, scoring, goals) is pure
+TypeScript with no Phaser imports so it can be unit-tested and tuned deterministically.
+Physics
+Custom kinematic skater controller (no general-purpose physics engine). Ground is a polyline with slope
+data; continuous collision so the skater never tunnels at top speed.
+Input
+Keyboard and Gamepad API (desktop); on-screen multi-touch controls (phone, required). An external
+gamepad or keyboard must also work on phone. One shared input abstraction. Input buffering (see 7.9).
+Save data
+localStorage, versioned schema, wrapped in try/catch with in-memory fallback. Stores goals, high scores,
+unlocks, settings.
+Quality
+ESLint + Prettier, strict TypeScript, Vitest for pure-logic tests (scoring, combo, trick resolution, goal
+evaluation, save migration). Optional Playwright smoke test that boots the game and captures
+screenshots.
+Performance
+60 FPS target. Texture atlases under 2048x2048. Pool particles and sounds. No per-frame allocations in
+the hot loop. Total assets under 20 MB.
+3.1 Platform profiles: desktop vs phone
+Both profiles share one codebase, one simulation and the same 480x270 art. They differ in viewport, input, HUD layout,
+defaults and performance handling. Detect the profile at boot (touch capability and viewport size) and allow a manual
+override in Settings.
+Aspect
+Desktop
+Phone
+Viewport
+480x270 virtual (16:9). Largest integer
+scale that fits, letterboxed. Fullscreen
+toggle (F).
+Landscape only. Virtual height fixed at 270; virtual width flexible from
+480 to 576 (16:9 up to about 19.5:9) so there are no large black bars.
+Gameplay-critical content stays inside the central 480x270 safe area.
+Respect device safe-area insets (notch). Portrait shows a 'rotate your
+device' screen and pauses.
+Input
+Keyboard, optional gamepad, mouse
+for menus.
+On-screen touch overlay (section 7.1), multi-touch so several buttons
+can be held at once. External gamepad or keyboard also supported.
+Touch UI
+Not shown.
+Buttons at least 48 CSS px (about 9 mm) with gaps of 8 px or more,
+semi-transparent (default 55%), anchored to the bottom corners, never
+covering the gameplay centre or HUD. Settings: left-handed swap,
+size, opacity, haptics on/off.
+Browser gestures
+Not relevant.
+Disable pinch zoom, double-tap zoom, scrolling, pull-to-refresh and
+long-press menus (touch-action: none, user-select: none, viewport
+meta, preventDefault on touch events).
+HUD
+As in section 8.
+Same elements, thumb-safe: bottom corners left free. Larger text
+(minimum 8 virtual px, scaled by the integer scale). See section 8.
+Assist defaults
+Off. Input buffer 8 frames.
+On: wider balance zone, rail auto-snap, input buffer 10 frames.
+Menus
+Keyboard/gamepad focus plus mouse
+hover.
+Large tap targets (48 CSS px minimum), no hover-only states,
+always-visible Back button.
+Performance
+60 FPS. Full particles and lighting
+overlays.
+Target 60 FPS with adaptive quality: measure average frame time
+over 2 s; if above 20 ms, step down (halve particles, replace dithered
+lighting overlays with pre-baked ones, disable CRT filter, reduce
+shake). Memory under 150 MB. Pause updates when the tab is hidden.
+Audio
+Unlock on first key press or click.
+Unlock on first touch; resume the AudioContext after visibilitychange
+(iOS Safari).
+Install / offline
+Optional.
+PWA: web manifest (landscape, fullscreen display) and a service
+worker so the game installs to the home screen and runs offline. Title
+screen shows short 'Add to Home Screen' help on iOS.
+
+
+=== PAGE 4 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 4
+Aspect
+Desktop
+Phone
+Testing
+Latest Chrome, Firefox, Edge, Safari.
+Chrome on Android and Safari on iOS. Playwright device emulation (for
+example Pixel 7 and iPhone 14 in landscape) in the smoke test, plus a
+real-device check by the human before shipping.
+4. Art direction
+The four attached images are the style bible. They are 1024x572 AI-generated pixel-art stills. Reproduce their look at
+480x270 in-game.
+
+Style. Modern retro pixel art: chunky 1-pixel dark outlines on sprites, soft rim lighting, ordered (Bayer/checker)
+dithering for light cones, haze and gradients (see the dithered streetlamp cones in the alley reference), saturated neon
+accents against a desaturated dark base.
+
+Palette. Extract the master palette from the reference images automatically (tools/extract_palette.py,
+median-cut to 32 colours, save palette.json) and lock it. Every asset you create must use only palette colours
+(per-level sub-palettes of about 16 colours are allowed). Mood colours below are approximate, for orientation only.
+
+Lighting. Warm sodium streetlamp cones (dithered edges, additive blend), neon sign glow with subtle flicker, cold
+fluorescent tubes in subway and warehouse (green-white, occasional flicker), pooled floor light, gentle vignette. Optional
+CRT scanline filter (settings toggle, default off).
+
+Parallax. 3 to 5 layers per level (far skyline or ceiling, mid facade or wall, near details, gameplay plane, foreground
+occluders).
+
+FX. Dust puffs on push and land, yellow-white grind sparks, short board trails on flips, landing impact rings, combo text
+pops, screen shake and hit-stop on bails and big landings.
+Mood colour
+Approx.
+Used for
+Night navy / indigo
+#0c1226
+Sky, deep shadows, UI backgrounds
+Brick red-brown
+#6b2f26
+Alley and warehouse brick walls
+Sodium amber
+#e8a93a
+Streetlamp cones, subway window glow, special effects
+Neon magenta / cyan
+#e0245e / #12d4e0
+ARCADE / LIQUOR signs, light spill, UI accents, rainbow visor
+Tile sage green
+#6f7a5e
+Subway wall tiles, bench seats in character art
+Maroon and dark green
+#5a1f22 / #1f3b2b
+Subway train body, puffer jacket
+Rust orange / wood tan
+#b8642a / #c79a5b
+Ramps, pipes, crates, barrels
+Fluorescent green-white
+#c8f0a0
+Warehouse tube lights
+5. Characters (4 playable)
+See REF-CHAR in Appendix B (four panels, each skater seated on a green subway bench). All four share one body plan
+and one animation set; they differ by ears, headgear, outfit colours, props and stats.
+5.1 Shared design rules
+
+In-world the skaters are called Nulls: blank-faced skaters with solid black heads. This is the identity of the game, so the
+blank black head is never replaced by a face.
+
+Anthropomorphic cat-like skaters. The entire head is a solid, flat black silhouette: no mouth, no nose, no skin tones.
+Pointed ears (inner ear may have a small tan or lavender highlight).
+
+The only expressive features are luminous eyes (white half-lidded crescents or closed-eye arcs) or lenses/visors.
+Expression comes from eye shape, posture and animation, not a face.
+
+Black gloved hands. Chibi proportions: head is about one third of total height. Baggy, oversized 90s streetwear
+silhouettes. Chill, relaxed body language.
+
+In-game sprite: about 40 to 48 px tall on a 64x64 cell, 1-px dark outline, soft warm or cool rim light on one side.
+
+
+=== PAGE 5 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 5
+
+Paper-doll layering so one animation set serves all four: base body (black head, gloves) + outfit layer
+(palette-swappable) + headgear layer (headphones, goggles, visor, glasses) + board. Per-character ears are part of the
+head variant.
+5.2 The four skaters (names are placeholders)
+Skater
+Visual spec (from REF-CHAR)
+Stats (1-5, total
+12)
+Role / special
+RIFF
+(panel
+top-left)
+Wide spiky ears. Red over-ear headphones with a cord.
+White half-moon eyes. Oversized beige tee, wide-leg blue
+jeans, black-red gloves. Idle prop: red handheld game
+console.
+Speed 3
+Air 3
+Balance 3
+Flip 3
+All-rounder, best for new players.
+Special: Pixel Storm (fast flip
+chain).
+PRISM
+(top-right)
+Tall rounded ears with tan inner. Rainbow-gradient visor
+goggles over a silver headphone cup. Black/purple zip
+tracksuit with rainbow piping. White sneakers. Idle prop: red
+handheld.
+Speed 3
+Air 4
+Balance 2
+Flip 3
+High-air stylist, rewards big
+rotations. Special: Spectrum Spin
+(rainbow-trail 720).
+BRASS
+(bottom-left)
+Tall pointed ears with tan inner. Round brass/amber
+goggles. Rust-brown jacket with fur collar, grey baggy pants,
+brown shoes. Idle prop: small notebook.
+Speed 2
+Air 2
+Balance 5
+Flip 3
+Grind and manual specialist, very
+stable. Special: Long Hauler
+(extended balance-free grind).
+LOOP
+(bottom-right
+)
+Pointed ears with lavender rim highlight. Teal over-ear
+headphones with silver arm, round clear glasses with
+closed-eye arcs (serene look). Green puffer jacket, navy
+baggy pants. Idle prop: silver portable CD player with cord to
+headphones.
+Speed 4
+Air 2
+Balance 4
+Flip 2
+Speedster, fills the special meter
+fastest. Special: Repeat Mode
+(self-replaying trick echo).
+Stat effects (tunable): Speed = max speed and push acceleration; Air = jump impulse and rotation speed; Balance = how
+slowly the grind/manual meter drifts; Flip = flip animation speed (shorter trick duration).
+5.3 Required animations (per character, 64x64 cells)
+Group
+Animations (approx. frames)
+Ground
+idle on board (4), push (6), roll/crouch (2), brake (3), turn-around (3), land (3)
+Air
+ollie launch (3), rise/peak/fall (3), kickflip / heelflip / shove-it board spin (6 each, board only is acceptable),
+body rotation overlay for front/back flips
+Grabs
+indy, melon, stalefish, method, mute: 1 hold pose each + 2 transition frames
+Grind / manual
+50-50, 5-0, nosegrind, boardslide, tailslide (loop 2 each) + balance wobble left/right (2); manual and nose
+manual (loop 2 + wobble 2)
+Bail
+slam (5), tumble/slide (6), get up (6)
+Extras
+special wind-up (4) + special trick (per character, 8 to 12), victory pose (4), menu portrait 128x128 in the
+style of REF-CHAR (seated, chill)
+5.4 Key colours sampled from the reference, and detail sheets
+Skater
+Sampled colours (approximate; shadows and rim light shift them)
+RIFF
+Headphones #d42b2e, Tee #e9ad76, Jeans #254362, Handheld #5c0d11
+PRISM
+Visor glow #203270, Ear inner #d8956e, Tracksuit #1c1228, Pants #130e20, Sneakers #a28c89, Handheld #670b16.
+The visor is a rainbow gradient, the hex is only its blue rim.
+BRASS
+Goggle lens #ed8445, Jacket #643522, Fur collar #9c6f58, Pants #5b5a53, Shoe upper #502120, Notebook #bb9a68
+LOOP
+Headphones #183337, Ear rim #66536b, Jacket #182b28, Pants #213047, CD player #95847a
+
+These values come from a single AI-generated image. Treat them as guides; the locked palette is the one produced by
+tools/extract_palette.py.
+
+Footwear is not visible for RIFF and LOOP in the reference. Default: dark sneakers with light soles (record in
+DECISIONS.md).
+
+One detail sheet per skater (ref_char_01_riff_sheet.png ... ref_char_04_loop_sheet.png) holds the panel,
+three enlarged detail crops, the spec, swatches, stats and sprite notes. See Appendix B for the file list.
+
+
+=== PAGE 6 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 6
+6. Environments (3 levels)
+See REF-ENV-1/2/3 in Appendix B. Each level is a horizontally scrolling side-view course, 5 to 6 screens wide (about
+2400 to 2900 px), built from a modular kit of tiles and props drawn in the reference style. REF-ENV-2 (subway) and
+REF-ENV-3 (warehouse) are already side-on and may be downscaled to 480x270 and used as the first-screen mid-layer,
+then extended with kit pieces and mirror-tiled seams. REF-ENV-1 (alley) is drawn in one-point perspective: use it as
+title/loading art and as a style target, and rebuild the playable alley side-on from the same elements and palette.
+Level 1: LAST CALL ALLEY (night, tutorial-friendly) - REF-ENV-1
+Setting
+Narrow night alley between brick tenements. Sodium streetlamps cast dithered amber cones on asphalt.
+Magenta and cyan neon spill on the ground. Distant skyline with lit windows.
+Visual kit
+Red-brown brick walls with graffiti tags; fire escape with railings; roll-up garage door with graffiti; green
+dumpsters (one with open lid); metal trash cans; cardboard boxes; concrete entrance steps; neon signs
+ARCADE (red box sign) and vertical LIQUOR (cyan); parked cars in the distance; red-and-white striped curb
+barrier.
+Skate objects
+Wooden kicker/quarter ramp x2, flat metal grind rail x3, dumpster lid ledge, curb grind, stair set (gap),
+fire-escape rail (high line reached from the kicker), flat manual pad.
+Gaps (bonus)
+Dumpster Gap (jump the open dumpster), Stair Set, Barrier Hop (striped curb).
+Collectibles
+S-K-A-T-E letters x5 (some require tricks to reach); secret Arcade Token hidden on the upper fire-escape
+route near the ARCADE sign.
+Hazards
+Rolling trash cans (collision = slowdown or bail). Otherwise none. Teaches fundamentals.
+Mood / audio
+Lo-fi synthwave, distant city hum, neon buzz.
+Level 2: PLATFORM ZERO (subway station) - REF-ENV-2
+Setting
+Underground platform. Sage-green tiled wall covered in colourful graffiti pieces (pink, green, blue, teal,
+orange), rusty ceiling pipes, warm fluorescent fixtures with pooled light on cracked concrete, yellow safety
+line, track bed below.
+Visual kit
+Dark-green and maroon train with orange-lit windows and a small flag/logo; metal bench; wooden kicker
+ramp; flat box with spray cans; scattered cans; support pillars; ceiling cables.
+Skate objects
+Kicker ramps, bench grind, platform-edge ledge grind (the yellow line is safe, the track bed is a bail zone),
+flat box (funbox), manual pad.
+Dynamic element
+A train arrives and leaves every ~25 s on the track bed (animated in the background plane, with wind gust
+and audio cue). It never hurts the player but the track bed does (bail zone). A Track Gap lets the player clear
+the tracks to a far platform island.
+Gaps (bonus)
+Track Gap, Bench Hop, Pillar Gap.
+Collectibles
+S-K-A-T-E letters x5; Spray Cans x5 hidden around the level: collecting all five reveals a new graffiti piece
+on the wall (secret goal); a hidden Metro Token.
+Mood / audio
+Dark electro, 110 BPM, echoing percussion, tunnel reverb, train rumble.
+Level 3: THE FOUNDRY (warehouse skatepark) - REF-ENV-3
+Setting
+Disused brick warehouse converted into a skatepark. Steel I-beam columns and trusses, hanging
+green-white fluorescent tubes (flicker), cracked concrete floor, graffiti on exposed brick.
+Visual kit
+Big grey concrete quarter-pipe; orange-rust wooden kickers and funbox with blue-grey side panels; crates;
+stacked tires; pallets; green and rust oil drums; green industrial machinery (control box and lathe-like
+machine).
+Skate objects
+Large concrete quarter-pipes (vert-style air), funbox with grindable edges, machinery top (ledge grind), crate
+stack (hip), manual lines, drum slalom.
+Dynamic element
+A conveyor belt section (speed boost or drag zone) and rolling oil drums released at intervals.
+Gaps (bonus)
+Big Air (across the main bowl), Funbox Transfer, Machine Hop.
+Collectibles
+S-K-A-T-E letters x5 (two require big air); hidden Golden Wrench on a high beam reachable via a vert ramp.
+Mood / audio
+Industrial breakbeat, 124 BPM, metallic reverb, machine hum.
+
+
+=== PAGE 7 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 7
+Level layout rule: design each level as a sequence of lines (ramp -> air -> rail -> manual -> gap) with a safe low route and
+a risky high route. Provide at least two ways to chain a 10-trick combo without touching the ground.
+7. Core gameplay specification
+This is the heart of the project. "Forward" means the direction the skater faces; "Back" the opposite. All numbers are
+tunable and live in data/physics.json and data/tricks.json.
+7.1 Controls
+Action
+Keyboard
+Gamepad
+Touch (phone)
+Notes
+Push forward / lean
+forward
+Right or D
+Stick right /
+D-pad
+D-pad right
+Hold to push. In air: rotate forward (frontflip).
+Brake / lean back
+Left or A
+Stick left /
+D-pad
+D-pad left
+Turns around when nearly stopped. In air: rotate
+back.
+Crouch / nose
+manual
+Down or S
+Stick down
+D-pad down
+Modifies tricks (see 7.4).
+Manual / tail lift
+Up or W
+Stick up
+D-pad up
+Tap on flat ground to enter manual.
+Ollie (jump)
+Space or Z
+A / Cross
+OLLIE (largest button)
+Hold for height.
+Flip trick
+X
+X / Square
+FLIP button
+Plus direction selects trick.
+Grab
+C
+B / Circle
+GRAB button
+Plus direction; hold for time bonus.
+Grind
+V
+Y / Triangle
+GRIND button
+Hold in air near a rail to snap.
+Special trick
+X + C
+together
+X + B together
+SPECIAL button
+(appears when the
+meter is full)
+Only when special meter is full.
+Pause / Restart
+Esc or P / R
+Start / hold
+Select
+Pause icon top-centre;
+Restart in pause menu
+and results
+Restart must be under 1 second.
+
+Touch layout (phone): left thumb = 4-way D-pad (a floating-stick variant is optional); right thumb = four buttons in a
+diamond: OLLIE (largest, bottom), FLIP (left), GRAB (right), GRIND (top). SPECIAL appears above the diamond only
+when the meter is full.
+
+All touch buttons are multi-touch, show a pressed state, and give a short haptic tick via navigator.vibrate where
+supported (Settings toggle). Left-handed layout swaps the two sides.
+7.2 Skater state machine
+States: Ground (idle, push, roll, brake, crouch) -> Air (ollie, flip, grab, rotate) -> Grind -> Manual -> Ramp ride (ground
+state on slopes) -> Bail (slam, tumble, get-up) -> Special. Write the state machine as pure logic with explicit, tested
+transitions. No state may be inescapable.
+7.3 Movement and physics (starting values)
+Parameter
+Start value
+Notes
+Gravity
+1400 px/s^2
+Tune with jump height; skater is ~44 px tall.
+Ollie impulse
+420 px/s tap, up to 520 px/s held
+About 63 to 96 px apex.
+Max ground speed
+260 px/s (x Speed stat factor 0.9 to 1.15)
+Higher speed allowed on downhill slopes and
+conveyors.
+Push acceleration
+160 px/s^2
+Rolling friction 30 px/s^2, brake 260 px/s^2.
+Slopes
+Gravity component along the surface
+Preserve tangent velocity when launching off a
+ramp.
+Air rotation
+540 deg/s (x Air factor)
+Held Forward/Back in air rotates the body.
+Coyote time / jump buffer
+6 frames / 6 frames
+Also 8-frame trick input buffer (10 with Assist).
+
+
+=== PAGE 8 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 8
+7.4 Tricks (all values tunable, defined in data/tricks.json)
+Category
+Trick (input)
+Duration
+Base pts
+Flip (Flip + direction)
+Kickflip (neutral), Heelflip (Down), Pop Shove-it (Up), Hardflip
+(Forward), Inward Heelflip (Back)
+0.45 to 0.7 s
+100 to 250
+Grab (Grab + direction)
+Indy (neutral), Melon (Up), Stalefish (Down), Method (Forward),
+Mute (Back). Bonus points per second held.
+hold
+150 to 300 + 100/s
+Rotation (hold
+Forward/Back in air)
+Frontflip / Backflip, 360 and 720 variants (bonus)
+by angle
+500 / 2000
+Grind (Grind + direction)
+50-50 (neutral), 5-0 (Down), Nosegrind (Up), Boardslide
+(Forward), Tailslide (Back). Points tick per 0.1 s and multiplier
+grows each second.
+balance
+50/tick
+Manual (tap Up / Down on
+flat)
+Manual and Nose manual, balance based
+balance
+40/tick
+Gap (area trigger)
+Named gaps in level data (e.g. "Dumpster Gap"), counts as a
+trick for the multiplier
+n/a
+300 to 1500
+Special (Flip + Grab, meter
+full)
+One unique special per character, 1.2 s animation, may be
+chained
+1.2 s
+1500
+7.5 Combo and scoring
+
+A combo is a chain of tricks, grinds, manuals and gaps linked without a bail and without more than 1.2 s of plain rolling
+between links. When the link timer expires the combo banks into total score.
+
+Combo score = (sum of trick points) x multiplier. The multiplier is the number of distinct tricks in the combo. A
+repeated trick scores 50% and does not raise the multiplier.
+
+Special trick (consumes the full meter) doubles the multiplier for the remainder of that combo.
+
+Special meter fills from trick points (faster with long combos and clean landings; Loop fills fastest) and drains to zero on
+bail.
+
+HUD callouts: stacked trick names with running total and multiplier, e.g. KICKFLIP + INDY + 50-50 1,250 x 3.
+Add "SICK!" style callouts at score thresholds (original wording).
+
+At timer end, any combo in progress gets a short grace period and then banks automatically.
+7.6 Landing, balance and bail
+
+Landing angle relative to the surface normal: Clean within 25 deg (full points, small speed bonus), Sketchy 25 to 50
+deg (combo kept, points reduced, speed loss), Bail beyond 50 deg.
+
+A flip trick not finished at touchdown: if more than 35% of the animation remains it is a Bail, otherwise Sketchy.
+
+Balance meter (grind and manual): value b in [-1, 1] drifts away from 0 at a rate that increases with time and is reduced
+by the Balance stat. Left/Right nudges it back. The green zone (|b| < 0.35) pays points; |b| >= 1 bails. An Assist setting
+widens the zone and enables rail auto-snap (default ON on phone, OFF on desktop).
+
+Bail costs only the current combo and about 1.0 s. No lives or health. The skater respawns rolling at the last safe
+ground position. Bailing off the map edge or into a bail zone (track bed) is handled the same way. The skater can never
+fall out of the world.
+7.7 Goals, collectibles and progression
+Goal slot (per level)
+Description
+Example (Level 1)
+1 to 3 Score
+Bronze / Silver / Gold total score within the time limit
+15,000 / 30,000 / 50,000
+4 S-K-A-T-E
+Collect all five letters in one run
+Letters placed along lines
+5 Secret
+Find the hidden item
+Arcade Token / Spray Cans / Golden
+Wrench
+6 Level challenge
+Level-specific trick goal
+Grind all 3 rails in one combo; clear all 3
+gaps in one run
+
+Unlocks (default, tunable): Level 2 after 3 total goals; Level 3 after 8; Prism after 3 goals; Brass after 8; Loop after 14.
+Riff and Level 1 available at start.
+
+
+=== PAGE 9 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 9
+
+Free Skate shows high scores and lets the player practise with no timer. Save best score, completed goals and unlocks.
+7.8 Camera
+Look-ahead in the direction of travel scaled by speed, vertical dead zone, smooth follow, whole-pixel snapping, slight
+zoom-out is not allowed (keep integer scale). Screen shake on bail and big landings (respect the reduce-flashing/shake
+setting).
+7.9 Game-feel checklist (mandatory)
+
+Variable jump height, coyote time, jump buffer, trick input buffer, continuous collision, slope-following that never sticks or
+launches randomly.
+
+Landing squash (2 frames), dust puff, hit-stop (3 frames) on big landings, board and wheel sounds pitched by speed,
+speed lines at high speed.
+
+Grind sparks and scrape loop pitched by speed, clear visual cue when a rail is snappable (subtle outline pulse), clear
+audio/visual cue on combo bank.
+
+Debug overlay (F1): FPS, state, speed, angle, balance, colliders, combo timer. Physics values hot-reloadable in dev.
+8. UI / UX
+Screen flow: Boot -> Title (animated alley art, neon signs flicker) -> Main menu (Career, Free Skate, Settings, Credits) ->
+Character select (portraits in the REF-CHAR style, stat bars) -> Level select (level card, goal checkmarks, padlock) ->
+Game + HUD -> Pause -> Results (score breakdown, goals, unlocks) -> back.
+HUD element
+Position / behaviour
+Score and best combo
+Top-left, large pixel font, count-up animation.
+Current combo line
+Top-centre: trick names stacked, total and multiplier, fades after banking.
+Timer
+Top-right, turns red and pulses under 10 s.
+Special meter
+Bottom-left neon bar (under the score on phone) with glow when full (shape + colour, not colour
+alone).
+Balance meter
+Appears only during grind/manual: arc with needle, green zone, shake when near failure.
+S-K-A-T-E letters
+Bottom-right on desktop (under the timer on phone); letters light up when collected.
+Goal toast
+Short banner when a goal is completed.
+Phone adjustments
+Keep both bottom corners free for thumbs (touch controls live there). Score top-left, combo
+top-centre, timer top-right. Minimum text size 8 virtual px.
+
+Font: a free pixel font with an open licence (e.g. Press Start 2P or Silkscreen, SIL OFL) or a bitmap font you create.
+Record the licence in CREDITS.md.
+
+Menu style: neon-sign look (cf. ARCADE and LIQUOR signs), dark navy backgrounds, magenta and cyan accents,
+subtle dither gradients, clear focus highlight, full keyboard/gamepad navigation.
+
+Settings: master/music/SFX volume, screen shake and flashing reduction, CRT scanlines, assist balance, key
+rebinding (minimal), fullscreen, and for phone: touch layout (left-handed swap, size, opacity) and haptics. Profile
+override (auto / desktop / phone).
+
+Language: UI is English only. Keep all UI text in strings/en.json (no hard-coded strings) so wording can be
+changed in one place.
+9. Audio
+
+Music (original, loopable): Menu 80 BPM chill synth; Alley 96 BPM lo-fi synthwave (bass, arpeggios, soft drums);
+Subway 110 BPM dark electro with echo; Warehouse 124 BPM industrial breakbeat. Generate procedurally with a small
+WebAudio step-sequencer or create compact OGG files (under 1.5 MB each).
+
+SFX list: board roll loop (pitch by speed), push, ollie pop, clean/sketchy landing, flip whoosh, grab hold, grind
+start/loop/end, manual tick, bail thud, combo bank ding, letter pickup arpeggio, gap bonus stinger, menu
+move/confirm/back, train arrive/pass, neon buzz and fluorescent hum ambience.
+
+
+=== PAGE 10 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 10
+
+Rules: unlock audio on first user input, separate master/music/SFX buses, no clipping, no copyrighted samples. List
+any CC0/OFL sources in CREDITS.md.
+10. Architecture and data schemas
+nulls-skatepark/
+  index.html  package.json  vite.config.ts  tsconfig.json  README.md
+  PROGRESS.md  DECISIONS.md  CREDITS.md
+  docs/        GAME_DESIGN.md  ASSET_SPEC.md  spec/ (this brief split by section)  qa/ (screenshots vs references)
+  tasks/       one task file per milestone (section 12.1)   ESCALATION.md (only when needed)
+  tools/       extract_palette.py  downscale_refs.py  make_placeholders.py  pack_atlas.*
+  public/assets/  ref_scaled/  sprites/  backgrounds/  ui/  audio/
+  public/      manifest.webmanifest  sw.js  (PWA for phone)
+  src/
+    main.ts  config.ts
+    scenes/    Boot  Preload  Title  CharacterSelect  LevelSelect  Game  Hud  Pause  Results  Settings
+    sim/       (pure TS, no Phaser)  SkaterSim  StateMachine  TrickSystem  ComboScore
+               GrindSystem  ManualSystem  Terrain  GoalSystem  Physics
+    entities/  Skater  Prop (Ramp, Rail, Ledge)  Collectible  Hazard (Train, Conveyor, Barrel)
+    systems/   InputManager  TouchControls  PlatformProfile  AdaptiveQuality  CameraRig  LevelLoader
+               SaveSystem  AudioManager  Particles  Palette
+    data/      physics.json  tricks.json  characters.json  goals.json
+               levels/alley.json  subway.json  warehouse.json
+    strings/   en.json
+  tests/       scoring.test.ts  combo.test.ts  trick.test.ts  goals.test.ts  save.test.ts
+Principles: sim/ never imports Phaser; scenes only read sim state and render it. Level JSON describes everything about a
+level, so adding a level means adding a JSON file and art. Example level schema (abridged):
+{
+  "id": "alley", "name": "Last Call Alley", "width": 2400, "timeLimit": 120,
+  "spawn": { "x": 120 },
+  "ground": [ { "x": 0, "y": 220, "type": "flat" }, { "x": 380, "y": 220, "type": "kicker", "rise": 28, "run": 64 } ],
+  "props":  [ { "type": "rail", "x": 640, "y": 206, "len": 96 }, { "type": "dumpster", "x": 820, "y": 206 } ],
+  "gaps":   [ { "id": "dumpster", "name": "Dumpster Gap", "from": 800, "to": 900, "points": 500 } ],
+  "collectibles": [ { "type": "letter", "char": "S", "x": 700, "y": 150 } ],
+  "hazards": [ { "type": "barrel", "x": 1500, "interval": 6 } ],
+  "layers": [ { "key": "bg_alley_far", "scroll": 0.2 }, { "key": "bg_alley_mid", "scroll": 0.5 } ],
+  "goals":  [ { "id": "score_bronze", "type": "score", "target": 15000 } ]
+}
+11. Asset pipeline
+You cannot rely on perfect final art from the start. Use a placeholder-first pipeline so gameplay is never blocked, and so
+final art can be swapped in later without touching code.
+Step
+What to do
+1 Tools
+tools/downscale_refs.py: resample the four reference images to 480x270 (LANCZOS, then quantize
+to the master palette) into public/assets/ref_scaled/. tools/extract_palette.py: produce
+palette.json.
+2 Placeholders
+tools/make_placeholders.py generates sprite sheets with the final names, sizes and frame counts:
+black-head silhouette with ears, gloves, coloured outfit blocks, simple board, so every animation exists from
+day one. Also placeholder tiles, ramps, rails, props in palette colours.
+3 Final art
+Replace placeholders by hand-drawn or AI-generated pixel art (see Appendix A). Naming:
+char_{id}_{anim}_{frame} in a Phaser JSON atlas, or fixed 64x64 grid sheets. Swapping must require
+zero code changes.
+4 Backgrounds
+Layered PNGs per level (far / mid / near / foreground). Ground tiles 16x16 or 32x32. Use REF-ENV-2/3
+downscales as first-screen mid layers and extend with mirror-tiled seams. Build the alley side-on from the kit;
+use REF-ENV-1 for the title and loading art.
+5 Packing
+Atlas packing (max 2048x2048), no sub-pixel offsets, power-of-two optional. Report total asset size in
+PROGRESS.md at each milestone.
+
+
+=== PAGE 11 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 11
+Visual QA loop
+At every milestone that changes visuals, capture a screenshot of the running game (Playwright or the dev server) and
+compare it side by side with the matching reference. Save pairs in docs/qa/ and note differences (palette, lighting,
+outline weight, dithering, character silhouette) with fixes. Do not declare a milestone done if the look clearly diverges
+from the references. Image reading is routed to a vision-capable tier (section 12.1). If your model cannot view images,
+rely on the written specs, palette.json and the hex values in section 5.4, and ask the human or Tier H to run the visual
+QA.
+12. Milestones, acceptance criteria and agent tiers
+Complete milestones in order. After each: run build and tests, commit, update PROGRESS.md (what was done, how to
+test, known issues, asset size), then continue immediately to the next unless blocked.
+ID
+Lead tier
+Deliverable
+Acceptance criteria
+M0
+Foundation
+H then L
+H writes src/sim/types.ts (interfaces), data schemas,
+folder skeleton and the input contract. L does repo, Vite +
+TS + Phaser, 480x270 scaling for both profiles, tools
+(palette, downscale), debug overlay, README stub,
+splits this brief into docs/spec and tasks/. Show
+downscaled REF-ENV-2 as static background.
+npm run dev works; crisp pixels at
+integer scales; phone landscape viewport
+with flexible width works; palette.json
+exists; FPS overlay.
+M1 Skate core
+H
+Skater controller (push/roll/brake, variable-height ollie),
+camera follow, fixed timestep. Input layer: keyboard,
+gamepad and touch overlay (M builds the touch
+behaviour against H's input contract; L draws the button
+art).
+Responsive controls, no jitter, apex 63 to
+96 px, latency within 1 frame, touch buttons
+are multi-touch.
+M2 Terrain
+and ramps
+H
+Polyline ground with slopes, kicker and quarter-pipe
+props, momentum conservation, ramp launch, landing
+evaluation, bail and respawn.
+Ride up and launch off a quarter-pipe; no
+tunnelling at max speed; respawn works.
+M3 Tricks and
+score
+M
+Flips, grabs, rotations, trick durations, combo manager,
+scoring/multiplier, special meter, HUD, unit tests.
+Scoring and combo tests pass; repeated
+tricks decay; HUD text matches state.
+M4 Grinds
+and manuals
+H
+Rails/ledges, snap logic, balance meter, manual on flat,
+linking combos, sparks FX.
+Can chain ollie -> grind -> ollie -> manual in
+one combo; balance failure bails.
+M5 Level 1
+(vertical slice)
+M (L for
+data)
+Alley: parallax, kit props, dithered lamp cones, neon
+signs, gaps, S-K-A-T-E, secret, 2:00 timer, goals, results
+screen, instant retry.
+Whole loop playable on desktop and
+phone; side-by-side screenshot vs
+REF-ENV-1 saved in docs/qa (reviewed by
+H).
+M6 Meta and
+menus
+L (M for
+save)
+Title, main menu, character select (4 characters, stats,
+unlock rules), level select, pause, settings, save system,
+desktop and phone menu layouts.
+State persists; unlocks work; all four
+characters playable via paper-doll/palette
+swap; menus usable by touch.
+M7 Levels 2
+and 3
+M (L for
+data)
+Subway (train, spray cans, track gap) and Warehouse
+(bowls, funbox, conveyor, drums).
+Each level has 6 completable goals;
+difficulty ramps from L1 to L3.
+M8 Audio and
+juice
+M (H
+tunes)
+Music loops, SFX, shake, hit-stop, particles, light flicker,
+CRT toggle, camera polish, adaptive quality for phone.
+Mix is balanced; toggles work; no clipping;
+phone keeps near 60 FPS or degrades
+gracefully.
+M9 Ship
+H
+Profiling, size optimization, device tests (emulation plus
+human real-device check), bug bash, tuning pass,
+README, CREDITS, PWA, production build and
+itch.io-ready zip.
+Definition of Done (section 13) fully met.
+Stretch (only after M9): local leaderboard, replay of the best combo, in-game level editor, extra characters and levels.
+12.1 Agent tiers and task routing
+The human runs three agent tiers; the model names live in this table only, so they can be swapped without touching the
+rest of the brief. Route work by difficulty, not by milestone number. If your harness can route a model per task, use the
+table below; if one agent does everything, it follows the same task breakdown and the human switches model at the
+marked checkpoints. Model capabilities (vision, context size) are not assumed.
+
+
+=== PAGE 12 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 12
+Tier
+Model (set by human)
+Use for
+L (default)
+deepseek/deepseek-v4.1-flash
+Everyday work: scaffolding, tooling scripts, JSON data (levels, tricks, characters,
+goals, strings), menus and settings scenes, HUD layout, touch button art,
+placeholder generation, README and docs, unit-test boilerplate, simple bug fixes
+with a clear repro.
+M
+moonshotai/kimi-k3.1-pro
+Medium-complexity systems: trick/combo/score logic, goal system, save system
+with migration, level loader, camera rig, hazards (train, conveyor, barrels), audio
+manager and procedural music, particles, adaptive quality, touch behaviour
+(multi-touch, haptics).
+H
+anthropic/claude-sonnet-5.5
+Hard and cross-cutting work: architecture and interface contracts, skater physics
+(slopes, continuous collision, landing evaluation), grind and balance mechanics,
+game-feel tuning, anything that needs reading images (style QA against
+references, screenshot comparison, palette decisions), code review at checkpoints,
+hard bug triage, performance profiling, the final Definition of Done audit.
+Task
+Tier
+Done when
+Repo, Vite, scaling for both profiles, tooling, README
+L
+dev server and build work; both viewports
+render crisp
+Interfaces, data schemas, folder skeleton, input contract
+H
+types compile; docs/spec written
+Skater controller, slopes, landing, bail
+H
+M1 and M2 acceptance met
+Keyboard and gamepad input layer
+M
+buffers and mappings tested
+Touch overlay and platform profile detection
+M (art by L)
+works in Playwright device emulation
+Trick, combo and score logic plus unit tests
+M
+tests pass
+Grind and balance mechanic
+H
+M4 acceptance met
+Level JSON authoring (props, gaps, collectibles, goals)
+L (M reviews)
+level loads; all goals completable
+Menus, settings, character and level select, results
+L
+navigable by keyboard, gamepad and touch
+Save system with versioned migration
+M
+tests pass; survives reload
+Hazards: train, conveyor, barrels
+M
+behave per section 6; never softlock
+Audio manager, SFX and music
+M
+mix balanced; toggles work
+Particles, juice, lighting overlays
+M (H tunes)
+matches reference look; no FPS drop
+Adaptive quality and profiling
+M builds, H profiles
+phone holds near 60 FPS or degrades
+gracefully
+Visual QA against references
+H
+side-by-side shots in docs/qa
+Milestone code review and playtest notes
+H at M2, M4, M5, M9; M
+otherwise
+issues logged in PROGRESS.md
+Bug fixing
+L first, escalate
+regression test added
+12.2 Handoff, escalation and context hygiene
+
+First task of M0: split this brief into docs/spec/NN_section.md files and write tasks/Mx.md for every milestone
+listing the exact spec files, source files and acceptance checks. Every later session reads only its task file, the relevant
+spec files and PROGRESS.md, never the whole brief.
+
+Small tasks: one task is one module or one file group (about 300 changed lines at most) with a runnable acceptance
+check. Every task ends with: tests pass, build passes, PROGRESS.md updated, one commit.
+
+Escalate one tier after 2 failed attempts or a failing test with an unclear cause. Write ESCALATION.md (goal, what was
+tried, error output, files involved) and stop. The higher tier resolves it and deletes the file.
+
+Interfaces are owned by Tier H (src/sim/types.ts). Other tiers may not change a public interface without a note in
+DECISIONS.md.
+
+Review checkpoints: Tier H reviews code and playtest notes at M2, M4, M5 and M9; Tier M reviews the other
+milestones.
+
+
+=== PAGE 13 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 13
+Per-task prompt template (the human or the orchestrator sends this to the chosen tier):
+You are working on NULLS SKATEPARK (repo root). Read: tasks/M3.md, docs/spec/07_gameplay.md, PROGRESS.md.
+Task: implement src/sim/ComboScore.ts per section 7.5, with unit tests in tests/combo.test.ts.
+Only modify: src/sim/ComboScore.ts, tests/combo.test.ts, data/tricks.json.
+Acceptance: npm test passes, npm run build passes, PROGRESS.md updated, one commit.
+If stuck after 2 attempts: write ESCALATION.md and stop.
+13. Working rules, defaults and Definition of Done
+Working rules
+
+Do not stop to ask for decisions covered by the defaults below. Pick, record the choice in DECISIONS.md and
+continue.
+
+When blocked (missing asset, ambiguous requirement, tool failure): state the problem, give 2 or 3 options with a
+recommendation, and continue with the recommended option unless the human replies.
+
+No scope creep before M8. Do not add features not in this document until the game is complete and polished.
+
+Commit often with clear messages (feat:, fix:, tune:, art:, docs:). Keep main always runnable.
+
+PROGRESS.md after each milestone: done, how to test, known issues, next steps, asset size. DECISIONS.md: any
+deviation or default chosen, with the reason.
+
+Playtest by playing. Where possible run the game, capture screenshots, and tune the numbers. Log tuning changes in
+docs/GAME_DESIGN.md.
+Defaults for open decisions (human may override)
+Decision
+Default
+Platform
+Web: desktop browser and phone browser (landscape), two profiles (section 3.1), offline,
+single-player, installable as a PWA on phone.
+Engine
+Phaser 3 + TypeScript + Vite.
+Perspective
+2D side view with parallax.
+Title
+NULLS SKATEPARK (placeholder; keep it in one config constant).
+Final art source
+Placeholder-first, then swap in final pixel art; references are the style target.
+UI language
+English only; strings still externalized in strings/en.json.
+Music
+Original synth/procedural; no copyrighted music.
+Agent models
+Tier L deepseek/deepseek-v4.1-flash (default), Tier M moonshotai/kimi-k3.1-pro, Tier H
+anthropic/claude-sonnet-5.5 (section 12.1).
+Online / accounts / monetization
+None.
+Content scope
+3 levels, 4 characters, ~30 tricks, 6 goals per level.
+Definition of Done
+
+Playable from title to results for all 3 levels and 4 characters without console errors, softlocks, or falling out of the world.
+
+60 FPS on a mid-range laptop; near 60 FPS (or graceful adaptive degradation) on a mid-range phone browser;
+production build under 20 MB.
+
+Phone: comfortable to play in landscape with the touch controls, rotate screen in portrait, installs as a PWA and runs
+offline; verified in Playwright device emulation and on a real device by the human.
+
+All 18 goals (6 per level) are achievable; unlocks and saves work across reloads.
+
+Controls feel tight (section 7.9 checklist passes); bail and respawn are fast and fair.
+
+Visuals consistent with the references (docs/qa has side-by-side shots); audio mixed and togglable.
+
+Unit tests pass; npm run build succeeds; README explains install, controls, build and deploy; CREDITS lists every
+third-party asset and licence.
+
+
+=== PAGE 14 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 14
+Appendix A: sprite generation briefs (for an image generator or a
+pixel artist)
+Use these only if you (or the human) have an image generation tool. AI image tools often produce inconsistent frames, so
+generate one character pose sheet first, then animation strips, then clean up in a pixel editor (Aseprite / LibreSprite) and
+convert to the exact grid and palette. If no generator is available, keep the procedural placeholders and tell the human what
+is missing.
+Global style block (prepend to every prompt)
+Modern retro pixel art, crisp pixel edges, no anti-aliasing, 1-pixel dark outline, limited 32-colour palette,
+ordered dithering for gradients, soft rim lighting, nocturnal urban mood, 2D side view, transparent background,
+64x64 pixel cells aligned on a strict grid, consistent proportions across frames.
+Shared character block
+Anthropomorphic black cat skateboarder, chibi proportions (head one third of body height), completely solid flat
+black head with no mouth and no nose, pointed ears, luminous white half-lidded crescent eyes, black gloves,
+baggy 90s streetwear, standing on a skateboard.
+Per-character additions
+Skater
+Add to prompt
+RIFF
+wide spiky upright ears with no inner colour; white half-moon half-lidded eyes; red over-ear headphones with a thin
+red band and a cord hanging down; oversized beige t-shirt with loose short sleeves; very wide-leg blue jeans with
+dark folds; black gloves; red handheld game console held in both hands; dark sneakers with white soles; warm red
+rim light on the left.
+PRISM
+tall rounded-pointed ears with peach inner ear; wrap-around rainbow gradient visor (cyan, green, yellow, magenta)
+with a white crescent eye visible; one silver headphone cup on the left; black and purple zip tracksuit with high collar,
+neon rainbow piping on sleeves and legs and a rainbow chevron on the chest; red handheld console; white cream
+chunky sneakers; cool rim light.
+BRASS
+tall pointed ears with tan inner ear; round brass goggles with glowing amber lenses; rust-brown jacket with cream fur
+collar; black gloves; grey baggy pants with orange rim light; small notebook with brown cover and cream pages;
+brown shoes with white soles; warm orange rim light.
+LOOP
+pointed ears with lavender-silver rim highlight; teal over-ear headphones with silver adjuster arm and a cord to a
+silver portable CD player; round clear glasses with thin white rims and closed-eye arcs; dark green chunky puffer
+jacket with high zip collar; navy baggy pants with red-orange rim light; dark sneakers; warm red-orange rim light.
+Animation strips and environment pieces
+
+Strip request template: "sprite sheet strip, N frames in one row, each 64x64, animation: <idle | push | ollie | kickflip |
+grind 50-50 | manual | bail slam | get up>, same character and palette as the pose sheet."
+
+Environment pieces: "seamless horizontally tileable background layer, 480x270, <brick alley facade | tiled subway wall
+with graffiti | warehouse brick wall with steel beams>, dithered lighting, same palette as the reference." Props separately
+on transparent background: kicker ramp, grind rail, dumpster, bench, quarter-pipe, funbox, crates, drums, neon signs.
+
+Menu portrait: "128x128 pixel art portrait of <character> seated on a green subway bench, same style, lighting and
+framing as REF-CHAR". Use the matching detail sheet as the visual reference.
+
+Negative prompt: photorealistic, smooth gradients, anti-aliased edges, text artefacts, extra limbs, inconsistent
+proportions, logos, copyrighted characters.
+
+
+=== PAGE 15 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 15
+Appendix B: reference images (style bible)
+Original files are provided alongside this PDF. If you cannot open them, use the embedded copies below. Look at palette,
+outline weight, dithering, lighting and silhouettes, and match them. If your model cannot view images, rely on the written
+specs (sections 4 to 6) and the sampled colours in section 5.4.
+File
+What it is
+ref_env_alley.png
+REF-ENV-1: alley (level 1)
+ref_env_subway.png
+REF-ENV-2: subway platform (level 2)
+ref_env_warehouse.png
+REF-ENV-3: warehouse skatepark (level 3)
+ref_characters.png
+REF-CHAR: the full 2x2 sheet of all four skaters
+character_refs/ref_char_NN_name_sheet.png
+One detail sheet per skater (01 riff, 02 prism, 03 brass, 04 loop): panel,
+enlarged detail crops, spec, swatches, stats, sprite notes
+character_refs/ref_char_NN_name_panel.png and
+_detailN_*.png
+Raw crops at original resolution (panel and three detail crops per skater)
+character_refs/palettes.json
+Sampled key colours per skater
+REF-ENV-1: Alley (level 1, one-point perspective; neon ARCADE and LIQUOR signs, dithered lamp cones, kicker ramp, rail, dumpsters)
+
+
+=== PAGE 16 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 16
+REF-ENV-2: Subway platform (level 2, side-on; graffiti tile wall, train, bench, kicker ramp, spray cans)
+
+
+=== PAGE 17 ===
+NULLS SKATEPARK  -  Master Build Prompt v1.1
+Page 17
+REF-ENV-3: Warehouse skatepark (level 3, side-on; brick, steel beams, fluorescent tubes, concrete bowl, funbox, machinery)
+REF-CHAR: the four skaters (top-left RIFF, top-right PRISM, bottom-left BRASS, bottom-right LOOP)
