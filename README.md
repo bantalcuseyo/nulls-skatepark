@@ -47,7 +47,14 @@ GRIND (top), SPECIAL above when the meter is full.
 - `spec/` — the build brief split by section (source of truth).
 - `tasks/` — one task file per milestone.
 
-## Don't have a game console? Play it here
+## Play it here
+
+### https://bantalcuseyo.github.io/nulls-skatepark/
+
+That link plays on a desktop browser and on a phone (landscape). It is served by GitHub Pages
+from the `docs/` build output on `master`, so it stays up.
+
+### Run it locally
 
 **`http://127.0.0.1:5173/`** while the dev server runs, or:
 

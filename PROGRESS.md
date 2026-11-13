@@ -53,6 +53,15 @@ over 2 s and steps 1.0 -> 0.6 -> 0.4 on phones only.
 - 30 unit + integration tests pass; `tsc --noEmit` clean.
 - Production build served and played through the browser (not just the dev server).
 
+## Live build
+
+https://bantalcuseyo.github.io/nulls-skatepark/ - GitHub Pages, served from `docs/` on `master`.
+
+```
+npm run build     # writes the Pages output into docs/
+git add -A && git commit -m ... && git push   # Pages redeploys in about a minute
+```
+
 ## How to test
 
 ```
