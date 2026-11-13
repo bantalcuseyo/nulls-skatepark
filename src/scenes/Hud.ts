@@ -90,7 +90,7 @@ export class Hud extends Phaser.Scene {
     this.timer.setPosition(W - SAFE - tw + 10, SAFE + 4);
     this.letters.setPosition(W - SAFE - tw + 10, SAFE + 20);
     // special meter (bottom-left)
-    plate(SAFE, 236, 104, 20, this.g.sim.specialMeter >= 100 ? UI.amber : UI.dim);
+    plate(SAFE, 236, 104, 20, this.g.sim.specialMeter >= 100 ? UI.amber : UI.cyan);
   }
 
   showGoal(label: string): void {
@@ -167,10 +167,16 @@ export class Hud extends Phaser.Scene {
     const my = 242;
     const mw = 92;
     const pct = Math.min(1, snap.meter);
+    // track
+    m.fillStyle(UI.ink, 1);
+    m.fillRect(mx, my, mw, 7);
+    // quarter ticks so the empty state still reads as a scale
     m.fillStyle(UI.dim, 1);
-    m.fillRect(mx, my, mw, 6);
+    for (let q = 0; q <= 4; q++) m.fillRect(mx + Math.round((mw - 1) * q / 4), my, 1, 7);
+    // fill (always at least 1 px so the bar is visibly "live" at 0%)
+    const fillW = Math.max(1, Math.round(mw * pct));
     m.fillStyle(pct >= 1 ? UI.amber : UI.magenta, 1);
-    m.fillRect(mx, my, Math.round(mw * pct), 6);
+    m.fillRect(mx, my, fillW, 7);
     if (pct >= 1) {
       m.fillStyle(UI.cream, 0.85);
       for (let x = 0; x < mw * pct; x += 6) m.fillRect(mx + x, my, 2, 6);

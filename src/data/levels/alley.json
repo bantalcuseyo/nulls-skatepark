@@ -241,10 +241,6 @@
     {
       "key": "alley_mid",
       "scroll": 0.45
-    },
-    {
-      "key": "alley_near",
-      "scroll": 0.8
     }
   ],
   "bailZones": [],
