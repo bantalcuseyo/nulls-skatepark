@@ -3,65 +3,259 @@
   "name": "PLATFORM ZERO",
   "width": 2600,
   "timeLimit": 120,
-  "spawn": { "x": 100 },
+  "spawn": {
+    "x": 100
+  },
   "music": "subway",
   "ground": [
-    { "x": 0, "y": 208, "type": "flat" },
-    { "x": 500, "y": 208, "type": "flat" },
-    { "x": 1200, "y": 208, "type": "flat" },
-    { "x": 1600, "y": 208, "type": "flat" },
-    { "x": 2600, "y": 208, "type": "flat" }
+    {
+      "x": 0,
+      "y": 208,
+      "type": "flat"
+    },
+    {
+      "x": 500,
+      "y": 208,
+      "type": "flat"
+    },
+    {
+      "x": 1200,
+      "y": 208,
+      "type": "flat"
+    },
+    {
+      "x": 1600,
+      "y": 208,
+      "type": "flat"
+    },
+    {
+      "x": 2600,
+      "y": 208,
+      "type": "flat"
+    }
   ],
   "kickers": [
-    { "x": 230, "baseY": 208, "run": 60, "rise": 26, "mirror": false },
-    { "x": 1350, "baseY": 208, "run": 60, "rise": 26, "mirror": false }
+    {
+      "x": 230,
+      "baseY": 208,
+      "run": 60,
+      "rise": 26,
+      "mirror": false
+    },
+    {
+      "x": 1350,
+      "baseY": 208,
+      "run": 60,
+      "rise": 26,
+      "mirror": false
+    }
   ],
   "quarters": [
-    { "x": 2000, "baseY": 208, "run": 90, "rise": 110, "mirror": false }
+    {
+      "x": 2000,
+      "baseY": 208,
+      "run": 90,
+      "rise": 110,
+      "mirror": false
+    }
   ],
   "platforms": [
-    { "x": 2090, "y": 98, "to": 2300 },
-    { "x": 780, "y": 208, "to": 980 }
+    {
+      "x": 2090,
+      "y": 98,
+      "to": 2300
+    },
+    {
+      "x": 780,
+      "y": 208,
+      "to": 980
+    }
   ],
   "props": [
-    { "type": "bench", "id": "bench1", "x": 560, "y": 188, "len": 48 },
-    { "type": "bench", "id": "bench2", "x": 1120, "y": 188, "len": 48 },
-    { "type": "funbox", "id": "fun1", "x": 1500, "y": 176, "len": 80 },
-    { "type": "rail", "id": "rail1", "x": 950, "y": 190, "len": 120 },
-    { "type": "manualpad", "id": "mp1", "x": 2400, "y": 208 }
+    {
+      "type": "bench",
+      "id": "bench1",
+      "x": 560,
+      "y": 188,
+      "len": 48
+    },
+    {
+      "type": "bench",
+      "id": "bench2",
+      "x": 1120,
+      "y": 188,
+      "len": 48
+    },
+    {
+      "type": "funbox",
+      "id": "fun1",
+      "x": 1500,
+      "y": 176,
+      "len": 80
+    },
+    {
+      "type": "rail",
+      "id": "rail1",
+      "x": 950,
+      "y": 190,
+      "len": 120
+    },
+    {
+      "type": "manualpad",
+      "id": "mp1",
+      "x": 2400,
+      "y": 208
+    }
   ],
   "gaps": [
-    { "id": "track", "name": "Track Gap", "from": 760, "to": 980, "points": 1000 },
-    { "id": "benchhop", "name": "Bench Hop", "from": 550, "to": 630, "points": 400 },
-    { "id": "pillar", "name": "Pillar Gap", "from": 1700, "to": 1800, "points": 600 }
+    {
+      "id": "track",
+      "name": "Track Gap",
+      "from": 760,
+      "to": 980,
+      "points": 1000
+    },
+    {
+      "id": "benchhop",
+      "name": "Bench Hop",
+      "from": 550,
+      "to": 630,
+      "points": 400
+    },
+    {
+      "id": "pillar",
+      "name": "Pillar Gap",
+      "from": 1700,
+      "to": 1800,
+      "points": 600
+    }
   ],
   "collectibles": [
-    { "id": "lS", "type": "letter", "char": "S", "x": 260, "y": 160 },
-    { "id": "lK", "type": "letter", "char": "K", "x": 600, "y": 150 },
-    { "id": "lA", "type": "letter", "char": "A", "x": 1000, "y": 160 },
-    { "id": "lT", "type": "letter", "char": "T", "x": 1550, "y": 140 },
-    { "id": "lE", "type": "letter", "char": "E", "x": 2060, "y": 70 },
-    { "id": "spray1", "type": "spray", "x": 420, "y": 190 },
-    { "id": "spray2", "type": "spray", "x": 1180, "y": 180 },
-    { "id": "spray3", "type": "spray", "x": 1540, "y": 150 },
-    { "id": "spray4", "type": "spray", "x": 2150, "y": 80 },
-    { "id": "spray5", "type": "spray", "x": 2500, "y": 190 },
-    { "id": "secret", "type": "secret", "x": 2250, "y": 70 }
+    {
+      "id": "lS",
+      "type": "letter",
+      "char": "S",
+      "x": 255,
+      "y": 178
+    },
+    {
+      "id": "lK",
+      "type": "letter",
+      "char": "K",
+      "x": 600,
+      "y": 180
+    },
+    {
+      "id": "lA",
+      "type": "letter",
+      "char": "A",
+      "x": 1000,
+      "y": 182
+    },
+    {
+      "id": "lT",
+      "type": "letter",
+      "char": "T",
+      "x": 1552,
+      "y": 150
+    },
+    {
+      "id": "lE",
+      "type": "letter",
+      "char": "E",
+      "x": 2062,
+      "y": 86
+    },
+    {
+      "id": "spray1",
+      "type": "spray",
+      "x": 420,
+      "y": 190
+    },
+    {
+      "id": "spray2",
+      "type": "spray",
+      "x": 1180,
+      "y": 180
+    },
+    {
+      "id": "spray3",
+      "type": "spray",
+      "x": 1540,
+      "y": 150
+    },
+    {
+      "id": "spray4",
+      "type": "spray",
+      "x": 2150,
+      "y": 80
+    },
+    {
+      "id": "spray5",
+      "type": "spray",
+      "x": 2500,
+      "y": 190
+    },
+    {
+      "id": "secret",
+      "type": "secret",
+      "x": 2245,
+      "y": 72
+    }
   ],
   "hazards": [
-    { "type": "train", "interval": 25 }
+    {
+      "type": "train",
+      "interval": 25
+    }
   ],
   "layers": [
-    { "key": "subway_far", "scroll": 0.2 },
-    { "key": "subway_mid", "scroll": 0.55 }
+    {
+      "key": "subway_far",
+      "scroll": 0.2
+    },
+    {
+      "key": "subway_mid",
+      "scroll": 0.55
+    }
   ],
   "bailZones": [],
   "goals": [
-    { "id": "score_bronze", "type": "score", "target": 20000, "label": "Score 20,000" },
-    { "id": "score_silver", "type": "score", "target": 40000, "label": "Score 40,000" },
-    { "id": "score_gold", "type": "score", "target": 70000, "label": "Score 70,000" },
-    { "id": "skate", "type": "letters", "target": 5, "label": "Collect S-K-A-T-E" },
-    { "id": "spray", "type": "spray", "target": 5, "label": "Collect all 5 spray cans" },
-    { "id": "trackgap", "type": "gaps", "target": 3, "label": "Clear all 3 gaps" }
+    {
+      "id": "score_bronze",
+      "type": "score",
+      "target": 20000,
+      "label": "Score 20,000"
+    },
+    {
+      "id": "score_silver",
+      "type": "score",
+      "target": 40000,
+      "label": "Score 40,000"
+    },
+    {
+      "id": "score_gold",
+      "type": "score",
+      "target": 70000,
+      "label": "Score 70,000"
+    },
+    {
+      "id": "skate",
+      "type": "letters",
+      "target": 5,
+      "label": "Collect S-K-A-T-E"
+    },
+    {
+      "id": "spray",
+      "type": "spray",
+      "target": 5,
+      "label": "Collect all 5 spray cans"
+    },
+    {
+      "id": "trackgap",
+      "type": "gaps",
+      "target": 3,
+      "label": "Clear all 3 gaps"
+    }
   ]
 }

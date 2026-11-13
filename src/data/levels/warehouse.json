@@ -3,68 +3,280 @@
   "name": "THE FOUNDRY",
   "width": 2800,
   "timeLimit": 120,
-  "spawn": { "x": 100 },
+  "spawn": {
+    "x": 100
+  },
   "music": "warehouse",
   "ground": [
-    { "x": 0, "y": 208, "type": "flat" },
-    { "x": 700, "y": 208, "type": "flat" },
-    { "x": 1000, "y": 208, "type": "flat" },
-    { "x": 1400, "y": 208, "type": "flat" },
-    { "x": 1800, "y": 208, "type": "flat" },
-    { "x": 2200, "y": 208, "type": "flat" },
-    { "x": 2800, "y": 208, "type": "flat" }
+    {
+      "x": 0,
+      "y": 208,
+      "type": "flat"
+    },
+    {
+      "x": 700,
+      "y": 208,
+      "type": "flat"
+    },
+    {
+      "x": 1000,
+      "y": 208,
+      "type": "flat"
+    },
+    {
+      "x": 1400,
+      "y": 208,
+      "type": "flat"
+    },
+    {
+      "x": 1800,
+      "y": 208,
+      "type": "flat"
+    },
+    {
+      "x": 2200,
+      "y": 208,
+      "type": "flat"
+    },
+    {
+      "x": 2800,
+      "y": 208,
+      "type": "flat"
+    }
   ],
   "kickers": [
-    { "x": 250, "baseY": 208, "run": 60, "rise": 26, "mirror": false },
-    { "x": 1450, "baseY": 208, "run": 60, "rise": 30, "mirror": false }
+    {
+      "x": 250,
+      "baseY": 208,
+      "run": 60,
+      "rise": 26,
+      "mirror": false
+    },
+    {
+      "x": 1450,
+      "baseY": 208,
+      "run": 60,
+      "rise": 30,
+      "mirror": false
+    }
   ],
   "quarters": [
-    { "x": 700, "baseY": 208, "run": 100, "rise": 120, "mirror": false },
-    { "x": 1200, "baseY": 88, "run": 100, "rise": 120, "mirror": true },
-    { "x": 1900, "baseY": 208, "run": 100, "rise": 120, "mirror": false }
+    {
+      "x": 700,
+      "baseY": 208,
+      "run": 100,
+      "rise": 120,
+      "mirror": false
+    },
+    {
+      "x": 1200,
+      "baseY": 88,
+      "run": 100,
+      "rise": 120,
+      "mirror": true
+    },
+    {
+      "x": 1900,
+      "baseY": 208,
+      "run": 100,
+      "rise": 120,
+      "mirror": false
+    }
   ],
   "platforms": [
-    { "x": 800, "y": 88, "to": 1100 },
-    { "x": 2000, "y": 88, "to": 2200 }
+    {
+      "x": 800,
+      "y": 88,
+      "to": 1100
+    },
+    {
+      "x": 2000,
+      "y": 88,
+      "to": 2200
+    }
   ],
   "props": [
-    { "type": "funbox", "id": "fun1", "x": 900, "y": 176, "len": 80 },
-    { "type": "funbox", "id": "fun2", "x": 1560, "y": 176, "len": 80 },
-    { "type": "rail", "id": "rail1", "x": 440, "y": 190, "len": 120 },
-    { "type": "rail", "id": "rail2", "x": 1700, "y": 150, "len": 120 },
-    { "type": "rail", "id": "rail3", "x": 2350, "y": 190, "len": 130 },
-    { "type": "manualpad", "id": "mp1", "x": 2560, "y": 208 },
-    { "type": "barrier", "id": "bar1", "x": 600, "y": 188 }
+    {
+      "type": "funbox",
+      "id": "fun1",
+      "x": 900,
+      "y": 176,
+      "len": 80
+    },
+    {
+      "type": "funbox",
+      "id": "fun2",
+      "x": 1560,
+      "y": 176,
+      "len": 80
+    },
+    {
+      "type": "rail",
+      "id": "rail1",
+      "x": 440,
+      "y": 190,
+      "len": 120
+    },
+    {
+      "type": "rail",
+      "id": "rail2",
+      "x": 1700,
+      "y": 150,
+      "len": 120
+    },
+    {
+      "type": "rail",
+      "id": "rail3",
+      "x": 2350,
+      "y": 190,
+      "len": 130
+    },
+    {
+      "type": "manualpad",
+      "id": "mp1",
+      "x": 2560,
+      "y": 208
+    },
+    {
+      "type": "barrier",
+      "id": "bar1",
+      "x": 600,
+      "y": 188
+    }
   ],
   "gaps": [
-    { "id": "bigair", "name": "Big Air", "from": 780, "to": 1180, "points": 1500 },
-    { "id": "funbox", "name": "Funbox Transfer", "from": 880, "to": 1010, "points": 600 },
-    { "id": "machine", "name": "Machine Hop", "from": 1700, "to": 1830, "points": 800 }
+    {
+      "id": "bigair",
+      "name": "Big Air",
+      "from": 780,
+      "to": 1180,
+      "points": 1500
+    },
+    {
+      "id": "funbox",
+      "name": "Funbox Transfer",
+      "from": 880,
+      "to": 1010,
+      "points": 600
+    },
+    {
+      "id": "machine",
+      "name": "Machine Hop",
+      "from": 1700,
+      "to": 1830,
+      "points": 800
+    }
   ],
   "collectibles": [
-    { "id": "lS", "type": "letter", "char": "S", "x": 290, "y": 150 },
-    { "id": "lK", "type": "letter", "char": "K", "x": 800, "y": 40 },
-    { "id": "lA", "type": "letter", "char": "A", "x": 1010, "y": 70 },
-    { "id": "lT", "type": "letter", "char": "T", "x": 1960, "y": 40 },
-    { "id": "lE", "type": "letter", "char": "E", "x": 2400, "y": 160 },
-    { "id": "secret", "type": "secret", "x": 2050, "y": 40 }
+    {
+      "id": "lS",
+      "type": "letter",
+      "char": "S",
+      "x": 300,
+      "y": 182
+    },
+    {
+      "id": "lK",
+      "type": "letter",
+      "char": "K",
+      "x": 810,
+      "y": 80
+    },
+    {
+      "id": "lA",
+      "type": "letter",
+      "char": "A",
+      "x": 1010,
+      "y": 80
+    },
+    {
+      "id": "lT",
+      "type": "letter",
+      "char": "T",
+      "x": 2010,
+      "y": 74
+    },
+    {
+      "id": "lE",
+      "type": "letter",
+      "char": "E",
+      "x": 2400,
+      "y": 182
+    },
+    {
+      "id": "secret",
+      "type": "secret",
+      "x": 2055,
+      "y": 72
+    }
   ],
   "hazards": [
-    { "type": "conveyor", "x": 1300, "len": 100, "speed": 60 },
-    { "type": "drum", "x": 1750, "interval": 8, "range": 140 },
-    { "type": "drum", "x": 2500, "interval": 10, "range": 100 }
+    {
+      "type": "conveyor",
+      "x": 1300,
+      "len": 100,
+      "speed": 60
+    },
+    {
+      "type": "drum",
+      "x": 1750,
+      "interval": 8,
+      "range": 140
+    },
+    {
+      "type": "drum",
+      "x": 2500,
+      "interval": 10,
+      "range": 100
+    }
   ],
   "layers": [
-    { "key": "warehouse_far", "scroll": 0.2 },
-    { "key": "warehouse_mid", "scroll": 0.55 }
+    {
+      "key": "warehouse_far",
+      "scroll": 0.2
+    },
+    {
+      "key": "warehouse_mid",
+      "scroll": 0.55
+    }
   ],
   "bailZones": [],
   "goals": [
-    { "id": "score_bronze", "type": "score", "target": 25000, "label": "Score 25,000" },
-    { "id": "score_silver", "type": "score", "target": 60000, "label": "Score 60,000" },
-    { "id": "score_gold", "type": "score", "target": 100000, "label": "Score 100,000" },
-    { "id": "skate", "type": "letters", "target": 5, "label": "Collect S-K-A-T-E" },
-    { "id": "secret", "type": "secret", "target": 1, "label": "Find the Golden Wrench" },
-    { "id": "bigair", "type": "bigair", "target": 2, "label": "Land a 720 in the main bowl" }
+    {
+      "id": "score_bronze",
+      "type": "score",
+      "target": 25000,
+      "label": "Score 25,000"
+    },
+    {
+      "id": "score_silver",
+      "type": "score",
+      "target": 60000,
+      "label": "Score 60,000"
+    },
+    {
+      "id": "score_gold",
+      "type": "score",
+      "target": 100000,
+      "label": "Score 100,000"
+    },
+    {
+      "id": "skate",
+      "type": "letters",
+      "target": 5,
+      "label": "Collect S-K-A-T-E"
+    },
+    {
+      "id": "secret",
+      "type": "secret",
+      "target": 1,
+      "label": "Find the Golden Wrench"
+    },
+    {
+      "id": "bigair",
+      "type": "bigair",
+      "target": 2,
+      "label": "Land a 720 in the main bowl"
+    }
   ]
 }

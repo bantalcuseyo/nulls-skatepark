@@ -732,9 +732,10 @@ export class SkaterSim {
   private collectPickups(): void {
     for (const c of this.collectibles) {
       if (this.collected.has(c.id)) continue;
+      // Generous grab box (collectibles should feel magnetic, not pixel-perfect).
       const dx = Math.abs(this.x - c.x);
       const dy = Math.abs(this.y - c.y);
-      if (dx < 18 && dy < 30) {
+      if (dx < 26 && dy < 44) {
         this.collected.add(c.id);
         if (c.type === 'letter' && c.char) this.letters.add(c.char);
         else if (c.type === 'secret') this.secrets.add(c.id);
