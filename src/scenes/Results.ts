@@ -60,9 +60,14 @@ export class Results extends Phaser.Scene {
     const total = new PixelText(this, 0, 180, `TOTAL GOALS: ${save.totalGoals()}`, 1).setTint(0x12d4e0);
     total.obj.setPosition(Math.round((W - total.width) / 2), 180);
 
+    // RETRY / SELECT LEVEL: tear THIS overlay down first, then hand control to the Game. The old
+    // code called this.g.scene.stop(), which stops the Game scene, not Results — so the overlay
+    // stayed on screen forever and only a full reload cleared it.
+    const retry = (): void => { this.scene.stop(); this.g.restart(); };
+    const toMenu = (): void => { this.scene.stop(); this.g.quitToMenu(); };
     const opts: Array<[string, () => void]> = [
-      [strings.retry, () => { this.g.scene.stop(); this.g.restart(); }],
-      [strings.levelSelect, () => { this.g.scene.stop(); this.g.quitToMenu(); }],
+      [strings.retry, retry],
+      [strings.levelSelect, toMenu],
     ];
     opts.forEach(([label, fn], i) => {
       const p = new PixelText(this, 0, 208 + i * 22, label, 1);
@@ -72,10 +77,10 @@ export class Results extends Phaser.Scene {
       this.actions.push(fn);
     });
 
-    this.input.keyboard?.on('keydown-R', () => { this.g.scene.stop(); this.g.restart(); });
+    this.input.keyboard?.on('keydown-R', () => { this.scene.stop(); this.g.restart(); });
     this.input.keyboard?.on('keydown-ENTER', () => this.actions[this.idx]());
     this.input.keyboard?.on('keydown-SPACE', () => this.actions[this.idx]());
-    this.input.keyboard?.on('keydown-ESC', () => { this.g.scene.stop(); this.g.quitToMenu(); });
+    this.input.keyboard?.on('keydown-ESC', () => { this.scene.stop(); this.g.quitToMenu(); });
     this.input.keyboard?.on('keydown-DOWN', () => { this.idx = (this.idx + 1) % this.items.length; this.refresh(); });
     this.input.keyboard?.on('keydown-UP', () => { this.idx = (this.idx + this.items.length - 1) % this.items.length; this.refresh(); });
     this.refresh();

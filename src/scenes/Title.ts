@@ -5,6 +5,7 @@ import type { SaveSystem } from '../systems/SaveSystem';
 import charactersData from '../data/characters.json';
 import strings from '../strings/en.json';
 import { GAME_TITLE } from '../config';
+import { UI } from '../systems/Theme';
 import { LEVEL_ORDER, LEVELS } from './Game';
 
 type Screen = 'main' | 'chars' | 'levels' | 'settings' | 'credits';
@@ -62,7 +63,6 @@ export class Title extends Phaser.Scene {
     this.statLabels = [];
     for (const i of this.items) i.label.destroy();
     this.items = [];
-    this.statText.setText('');
     this.portrait?.destroy();
   }
 
@@ -90,6 +90,12 @@ export class Title extends Phaser.Scene {
     this.addItem('settings', strings.settings, startY + 44, () => this.showSettings());
     this.addItem('credits', strings.credits, startY + 66, () => this.showCredits());
     this.addItem('goals', `GOALS COMPLETE: ${this.save.totalGoals()}`, startY + 100, () => undefined, 0xadb18c);
+    // First impression must be the skater, not just text: show the selected character's portrait
+    // on the title menu, to the left of the menu column.
+    this.portrait?.destroy();
+    const pid = this.save.data.selectedCharacter ?? 'riff';
+    this.portrait = this.add.image(Math.round(this.scale.width * 0.24), 150, `portrait_${pid}`)
+      .setOrigin(0.5, 0.5).setDisplaySize(104, 104).setDepth(1001);
     this.idx = 0;
     this.refresh();
   }
@@ -125,35 +131,57 @@ export class Title extends Phaser.Scene {
   private showCharStats(): void {
     const c = charactersData[this.idx] ?? charactersData[0];
     if (this.screen !== 'chars') return;
-    const s = c.stats;
-    // Numeric readout under the bars; the bars themselves are drawn as blocks.
-    this.statText.setText(`${c.name}  SPD${s.speed} AIR${s.air} BAL${s.balance} FLP${s.flip}\n${c.desc}\nSPECIAL: ${c.special}`);
-    this.statText.obj.setPosition(Math.round((this.scale.width - this.statText.width) / 2), 176);
 
+    // Everything this panel draws is destroyed and rebuilt on each selection, so no text from the
+    // previously highlighted skater can survive (that ghost text was the old, never-cleared label).
     this.statGfx?.destroy();
+    for (const l of this.statLabels ?? []) l.destroy();
+    this.statLabels = [];
+    this.portrait?.destroy();
+
+    const W = this.scale.width;
+    const cx = Math.round(W * 0.5);
+
+    // portrait, centred above the stats
+    this.portrait = this.add.image(cx, 96, `portrait_${c.id}`)
+      .setOrigin(0.5, 0.5).setDisplaySize(84, 84).setDepth(1001);
+
+    // ONE name line for the highlighted skater (this is what showed "RIFF" over BRASS).
+    const name = new PixelText(this, 0, 142, c.name, UI.h2).setTint(UI.cream).setDepth(1002);
+    name.obj.setPosition(Math.round(cx - name.width / 2), 142);
+    (this.statLabels ??= []).push(name);
+
+    const desc = new PixelText(this, 0, 156, c.desc, UI.micro).setTint(UI.grey).setDepth(1002);
+    desc.obj.setPosition(Math.round(cx - desc.width / 2), 156);
+    (this.statLabels ??= []).push(desc);
+
+    // stat rows: label on its own fixed column, blocks on a second fixed column, value at the end.
+    // Fixed columns are what stop the labels from colliding with the bars.
     const g = this.add.graphics().setDepth(1001);
     this.statGfx = g;
-    const rows: Array<[string, number]> = [['SPD', s.speed], ['AIR', s.air], ['BAL', s.balance], ['FLP', s.flip]];
-    const bx = Math.round(this.scale.width / 2) - 52;
-    const by = 208;
+    const rows: Array<[string, number]> = [['SPD', c.stats.speed], ['AIR', c.stats.air], ['BAL', c.stats.balance], ['FLP', c.stats.flip]];
+    const labelX = cx - 52;
+    const barX = cx - 26;
+    const rowY = 172;
+    const rowH = 9;
     rows.forEach(([, v], i) => {
+      const y = rowY + i * rowH;
       for (let k = 0; k < 5; k++) {
-        const x = bx + 22 + k * 9;
-        const y = by + i * 7;
-        g.fillStyle(k < v ? 0xe8a93a : 0x312e3d, 1);
-        g.fillRect(x, y, 7, 5);
-        if (k < v) { g.fillStyle(0xf9c588, 1); g.fillRect(x, y, 7, 1); }
+        const x = barX + k * 8;
+        g.fillStyle(k < v ? UI.amber : UI.dim, 1);
+        g.fillRect(x, y, 6, 5);
+        if (k < v) { g.fillStyle(0xf9c588, 1); g.fillRect(x, y, 6, 1); }
       }
     });
     rows.forEach(([label], i) => {
-      const t = new PixelText(this, bx, by + i * 7, label, 1).setTint(0xadb18c).setDepth(1002);
+      const t = new PixelText(this, labelX, rowY + i * rowH, label, UI.micro).setTint(UI.cyan).setDepth(1002);
       (this.statLabels ??= []).push(t);
     });
 
-    // Menu portrait: the reference sheet art itself (brief: "style target for the menu portrait").
-    this.portrait?.destroy();
-    this.portrait = this.add.image(this.scale.width / 2, 172, `portrait_${c.id}`).setOrigin(0.5, 1);
-    this.portrait.setDisplaySize(96, 96).setDepth(1001);
+    const sp = new PixelText(this, 0, rowY + rows.length * rowH + 4, `SPECIAL: ${c.special}`, UI.micro)
+      .setTint(UI.green).setDepth(1002);
+    sp.obj.setPosition(Math.round(cx - sp.width / 2), rowY + rows.length * rowH + 4);
+    (this.statLabels ??= []).push(sp);
   }
 
   private statLabels?: PixelText[];

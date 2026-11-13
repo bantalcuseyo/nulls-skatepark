@@ -160,9 +160,10 @@ export class Game extends Phaser.Scene {
     this.hud = this.scene.get('Hud') as import('../scenes/Hud').Hud;
 
     this.input.keyboard?.on('keydown-F1', () => { this.debugOn = !this.debugOn; this.debugText.setVisible(this.debugOn); });
-    this.input.keyboard?.on('keydown-ESC', () => this.togglePause());
-    this.input.keyboard?.on('keydown-P', () => this.togglePause());
-    this.input.keyboard?.on('keydown-R', () => this.restart());
+    // Pause is owned by two places only: the InputManager poll in update() (opens Pause) and the
+    // Pause scene's own ESC handler (closes it). Registering ESC here as well made ESC resume and
+    // immediately re-pause, which looked like a freeze.
+    this.input.keyboard?.on('keydown-R', () => { if (!this.scene.isActive('Results') && !this.scene.isActive('Pause')) this.restart(); });
 
     this.audio.startMusic(this.level.music);
     this.stepper.reset();
@@ -347,39 +348,80 @@ export class Game extends Phaser.Scene {
     this.tweens.add({ targets: this.flashRect, alpha: 0, duration: 200 });
   }
 
+  private lastToggle = 0;
+
+  /**
+   * The single owner of pause state. Called ONLY from update()'s input poll, which is the one
+   * place that can see a `pause` edge press. Overlays never toggle this themselves.
+   */
   togglePause(): void {
     if (this.finished) return;
-    this.paused = !this.paused;
-    if (this.paused) this.scene.launch('Pause', { game: this });
-    else this.scene.stop('Pause');
-    this.audio.setVolume('music', this.paused ? 0.2 : 0.6);
+    if (this.scene.isActive('Results')) return;
+    const now = performance.now();
+    if (now - this.lastToggle < 250) return;    // debounce the same physical keypress
+    this.lastToggle = now;
+    if (this.paused) {
+      this.resumeGame();
+    } else {
+      this.paused = true;
+      this.audio.setVolume('music', 0.2);
+      this.inputMgr.clearBuffers();
+      this.scene.launch('Pause', { game: this });
+      this.scene.bringToTop('Pause');
+    }
   }
 
   resumeGame(): void {
-    this.paused = false;
-    this.touch?.setVisible(true);
     this.scene.stop('Pause');
+    this.paused = false;
+    this.finished = false;
+    // The scene's update loop is only skipped by our own `paused` guard, but a stopped-and-restarted
+    // overlay can leave the scene asleep; make sure it is awake and ticking.
+    this.scene.resume();
+    this.sys.resume?.();
+    this.touch?.setVisible(true);
+    this.audio.setVolume('music', 0.6);
+    this.stepper.reset();   // drop the paused wall-clock so the skater does not lurch forward
+    // Discard input edges captured while paused (the resume keypress itself). Without this the
+    // queued `pause` press re-triggers on the next poll and the game appears to freeze.
+    this.inputMgr.clearBuffers();
   }
 
   restart(): void {
     this.touch?.setVisible(false);
     this.touch?.destroy();
     this.touch = null;
-    this.scene.stop('Hud');
+    // Tear down every overlay before restarting. Leaving Results up is what made RETRY look like
+    // it did nothing (the run restarted underneath a frozen overlay).
+    this.scene.stop('Results');
     this.scene.stop('Pause');
+    this.scene.stop('Hud');
+    this.paused = false;
+    this.finished = false;
     this.scene.restart(this.opts);
   }
 
   quitToMenu(): void {
     this.touch?.destroy();
     this.touch = null;
-    this.scene.stop('Hud');
+    this.scene.stop('Results');
     this.scene.stop('Pause');
+    this.scene.stop('Hud');
+    this.paused = false;
     this.scene.start('Title');
   }
 
   update(_time: number, deltaMs: number): void {
+    // Input is sampled EVERY frame, including while paused. If the poll were skipped while paused,
+    // the keypress that should resume the game would never be seen — the exact freeze the player
+    // reported. Only the simulation is gated by `paused`/`finished`.
+    const frame = this.inputMgr.sample();
+    if (frame.pressed.pause) {
+      this.togglePause();
+      return;
+    }
     if (this.paused || this.finished) return;
+
     const dt = Math.min(0.05, deltaMs / 1000);
     this.quality.step(deltaMs);
     if (this.hitStop > 0) {
@@ -390,13 +432,11 @@ export class Game extends Phaser.Scene {
     }
 
     const ticks = this.stepper.advance(dt, (fixed) => {
-      const frame = this.inputMgr.sample();
       this.sim.step(fixed, frame);
       if (this.conveyor && this.sim.grounded) {
         const c = this.conveyor;
         if (this.sim.x > c.x && this.sim.x < c.x + c.len) this.sim.vx += c.speed * fixed;
       }
-      if (frame.pressed.pause) this.togglePause();
     });
     void ticks;
 

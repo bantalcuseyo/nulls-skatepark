@@ -14,6 +14,7 @@ export class Hud extends Phaser.Scene {
   private meters!: Phaser.GameObjects.Graphics;
 
   private score!: PixelText;
+  private scoreLabel!: PixelText;
   private bestCombo!: PixelText;
   private comboLine!: PixelText;
   private timer!: PixelText;
@@ -37,6 +38,7 @@ export class Hud extends Phaser.Scene {
     this.plates = this.add.graphics().setScrollFactor(0).setDepth(900);
     this.meters = this.add.graphics().setScrollFactor(0).setDepth(902);
 
+    this.scoreLabel = new PixelText(this, 0, 0, 'SCORE', UI.micro).setTint(UI.cyan);
     this.score = new PixelText(this, 0, 0, '0', UI.h1).setTint(UI.cream);
     this.bestCombo = new PixelText(this, 0, 0, '', UI.micro).setTint(UI.grey);
     this.comboLine = new PixelText(this, 0, 0, '', UI.micro).setTint(UI.amber);
@@ -57,8 +59,9 @@ export class Hud extends Phaser.Scene {
   private layout(): void {
     const W = this.scale.width;
     const right = W - SAFE;
-    this.score.setPosition(SAFE + 4, SAFE + 4);
-    this.bestCombo.setPosition(SAFE + 4, SAFE + 22);
+    this.scoreLabel.setPosition(SAFE + 5, SAFE + 3);
+    this.score.setPosition(SAFE + 5, SAFE + 12);
+    this.bestCombo.setPosition(SAFE + 5, SAFE + 30);
     this.timer.setPosition(right - this.timer.width - 4, SAFE + 4);
     this.letters.setPosition(right - 4 - this.letters.width, SAFE + 22);
     this.meterLabel.setPosition(SAFE + 4, 240);
@@ -77,15 +80,15 @@ export class Hud extends Phaser.Scene {
       g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
     };
     // score block (top-left): width follows the score AND the best-combo line
-    const sw = Math.max(96, this.score.width + 16, this.bestCombo.width + 16);
-    plate(SAFE, SAFE, sw, 40);
+    const sw = Math.max(100, this.score.width + 18, this.bestCombo.width + 18, this.scoreLabel.width + 18);
+    plate(SAFE, SAFE, sw, 46);
     // timer block (top-right): sized for the WIDEST string this slot can hold, so the plate never
     // has to shrink when the text changes from "2:00" to "FREE" between frames.
     const tw = Math.max(88, this.timer.width + 20, this.letters.width + 20);
-    plate(W - SAFE - tw, SAFE, tw, 40);
+    plate(W - SAFE - tw, SAFE, tw, 34);
     // re-anchor the text inside the final plate so nothing is clipped
     this.timer.setPosition(W - SAFE - tw + 10, SAFE + 4);
-    this.letters.setPosition(W - SAFE - tw + 10, SAFE + 22);
+    this.letters.setPosition(W - SAFE - tw + 10, SAFE + 20);
     // special meter (bottom-left)
     plate(SAFE, 236, 104, 20, this.g.sim.specialMeter >= 100 ? UI.amber : UI.dim);
   }
@@ -151,8 +154,9 @@ export class Hud extends Phaser.Scene {
 
     // S-K-A-T-E tracker
     const got = sim.letters;
-    this.letters.setText(['S', 'K', 'A', 'T', 'E'].map((c) => (got.has(c) ? c : '.')).join(' '))
-      .setTint(got.size === 5 ? UI.amber : UI.grey);
+    // Only show collected letters — the old 'S . . . .' row read as unexplained dots.
+    const lit = ['S', 'K', 'A', 'T', 'E'].filter((c) => got.has(c)).join(' ');
+    this.letters.setText(lit.length ? `SKATE ${lit}` : '').setTint(got.size === 5 ? UI.amber : UI.cyan);
     this.letters.setPosition(W - SAFE - 4 - this.letters.width, SAFE + 22);
 
     // meters
@@ -172,7 +176,7 @@ export class Hud extends Phaser.Scene {
       for (let x = 0; x < mw * pct; x += 6) m.fillRect(mx + x, my, 2, 6);
       this.meterLabel.setText('SPECIAL READY').setTint(UI.amber);
     } else {
-      this.meterLabel.setText('SPECIAL').setTint(UI.grey);
+      this.meterLabel.setText(`SPECIAL ${Math.round(pct * 100)}%`).setTint(UI.cyan);
     }
 
     // balance (only while grinding/manualling) — drawn next to the special bar

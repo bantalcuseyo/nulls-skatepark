@@ -20,7 +20,7 @@ export class Pause extends Phaser.Scene {
     const opts: Array<[string, () => void]> = [
       [strings.resume, () => this.g.resumeGame()],
       [strings.restart, () => this.g.restart()],
-      [strings.settings, () => { this.scene.start('Title'); }],
+      [strings.settings, () => { this.scene.stop(); this.g.quitToMenu(); }],
       [strings.quit, () => this.g.quitToMenu()],
     ];
     opts.forEach(([label, fn], i) => {
@@ -36,7 +36,9 @@ export class Pause extends Phaser.Scene {
     this.input.keyboard?.on('keydown-S', () => this.move(1));
     this.input.keyboard?.on('keydown-ENTER', () => this.actions[this.idx]());
     this.input.keyboard?.on('keydown-SPACE', () => this.actions[this.idx]());
-    this.input.keyboard?.on('keydown-ESC', () => this.g.resumeGame());
+    // No ESC listener here on purpose: pause/resume is owned by the Game scene's single input
+    // poll. Registering ESC in this overlay added a listener on every pause and never removed it,
+    // so stale handlers eventually fought the poll and ESC appeared to do nothing.
     this.refresh();
   }
 
