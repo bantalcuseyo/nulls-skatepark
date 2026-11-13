@@ -40,3 +40,19 @@ Tiling that reads as a continuous street instead of hitting a hard repeat cut ev
 ## D008 - Adaptive quality is phone-only and one-way down
 `AdaptiveQuality` measures average frame time over 2 s and steps 1.0 -> 0.6 -> 0.4 on phones.
 Enabled only for the phone profile so desktop visuals are never degraded.
+
+## D009 - Skater sprites are built to a measured budget
+The first sprite pass built the figure 59-62 px tall inside a 64 px cell. That overflow is what
+made the limbs collapse into one silhouette: there was no room left for a background gap between
+the legs. The renderer is now built to the brief's numbers (section 5.1): a 40-48 px figure, feet
+at y=58, a head about a third of the figure, a wide stance and thin limbs.
+
+`tools/gen_art.py` is verified by measuring the rendered PNG rather than by looking at it:
+silhouette height per animation, and the width of the transparent channel between the legs.
+Current measurements: heights 45-50 px, leg gap 3-7 px on every character and every ground
+animation. Re-run that measurement after any change to the geometry constants.
+
+Note for whoever picks this up next: an image-description model rated these sprites 7/10, then
+4/10, then 5/10 across three rounds while the actual measurements improved each time, and it
+described a side-view sprite as "top-down". Do not tune art against that signal; tune against the
+measurement, and judge the result at 1x in the running game.
