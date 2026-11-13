@@ -26,6 +26,8 @@ export class Hud extends Phaser.Scene {
   private bankT = 0;
   private displayScore = 0;
   private meterLabel!: PixelText;
+  private panels!: Phaser.GameObjects.Graphics;
+  private comboPlate!: Phaser.GameObjects.Graphics;
 
   constructor() { super('Hud'); }
 
@@ -33,6 +35,12 @@ export class Hud extends Phaser.Scene {
 
   create(): void {
     const W = this.scale.width;
+    // Solid backing panels. The HUD sits over a bright, busy pixel environment, so every text
+    // block needs its own opaque plate or it disappears against lit windows and neon.
+    this.panels = this.add.graphics().setScrollFactor(0).setDepth(999);
+    this.comboPlate = this.add.graphics().setScrollFactor(0).setDepth(999);
+    this.drawPanels();
+    this.scale.on('resize', () => this.drawPanels());
     this.score = new PixelText(this, 8, 6, '0', 2).setTint(CREAM);
     this.bestCombo = new PixelText(this, 8, 22, '', 1).setTint(GREY);
     this.comboTotal = new PixelText(this, W / 2, 6, '', 1).setTint(AMBER);
@@ -47,6 +55,23 @@ export class Hud extends Phaser.Scene {
     this.callout = new PixelText(this, 0, 54, '', 1).setTint(CYAN).setVisible(false);
     this.bankText = new PixelText(this, 0, 100, '', 2).setTint(AMBER).setVisible(false);
     this.displayScore = 0;
+  }
+
+  /** Opaque plates behind each HUD corner + the combo line. */
+  private drawPanels(): void {
+    const W = this.scale.width;
+    const g = this.panels;
+    g.clear();
+    const plate = (x: number, y: number, w: number, h: number): void => {
+      g.fillStyle(0x0c1226, 0.86);
+      g.fillRect(x, y, w, h);
+      g.lineStyle(1, 0x12d4e0, 0.55);
+      g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    };
+    plate(2, 2, 104, 36);                 // score + best combo
+    plate(W - 76, 2, 74, 34);             // timer + letters
+    plate(2, 236, 110, 22);               // special meter
+    plate(120, 236, 76, 22);              // balance meter
   }
 
   showGoal(label: string): void {
@@ -96,6 +121,17 @@ export class Hud extends Phaser.Scene {
     const mult = snap.multiplier;
     const pend = snap.pending;
     this.comboTotal.setText(sim.combo.active ? `${label}  ${pend}x${mult}` : '').setVisible(sim.combo.active);
+    if (sim.combo.active) {
+      // dynamic plate behind the combo line, clamped inside the safe width
+      const cw = Math.min(this.scale.width - 20, this.comboTotal.width + 12);
+      this.comboPlate.clear();
+      this.comboPlate.fillStyle(0x0c1226, 0.86);
+      this.comboPlate.fillRect(Math.round((this.scale.width - cw) / 2), 2, Math.round(cw), 18);
+      this.comboPlate.lineStyle(1, mult >= 6 ? 0xe0245e : 0xe8a93a, 0.7);
+      this.comboPlate.strokeRect(Math.round((this.scale.width - cw) / 2) + 0.5, 2.5, Math.round(cw) - 1, 17);
+    } else {
+      this.comboPlate.clear();
+    }
     if (sim.combo.active) {
       this.comboTotal.obj.setPosition(Math.max(80, Math.round((this.scale.width - this.comboTotal.width) / 2)), 6);
       this.comboTotal.setTint(mult >= 6 ? MAGENTA : mult >= 3 ? AMBER : CREAM);

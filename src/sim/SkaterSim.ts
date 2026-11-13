@@ -287,7 +287,33 @@ export class SkaterSim {
     }
 
     this.x += this.vx * dt;
+    this.resolveSolids();
     this.animTime += dt;
+  }
+
+  /**
+   * Solid props (dumpsters, barriers, funboxes) block horizontal movement and can be landed on.
+   * Without this the skater simply passed through every prop on the course.
+   */
+  private resolveSolids(): void {
+    const feet = this.y;
+    for (const s of this.terrain.solids ?? []) {
+      const withinX = this.x > s.x0 - 6 && this.x < s.x1 + 6;
+      if (!withinX) continue;
+      const aboveTop = feet <= s.y0 + 2;          // already standing on / above it
+      if (aboveTop) continue;
+      // push out to the nearer side, and kill the inward velocity
+      const distLeft = Math.abs(this.x - (s.x0 - 6));
+      const distRight = Math.abs(this.x - (s.x1 + 6));
+      if (distLeft < distRight) {
+        this.x = s.x0 - 6;
+        if (this.vx > 0) this.vx = -Math.abs(this.vx) * 0.35;
+      } else {
+        this.x = s.x1 + 6;
+        if (this.vx < 0) this.vx = Math.abs(this.vx) * 0.35;
+      }
+      this.emit('bonk', { kind: s.kind });
+    }
   }
 
   private startOllieCharge(): void {
@@ -396,7 +422,13 @@ export class SkaterSim {
     for (let i = 1; i <= steps; i++) {
       const px = this.x + (nx - this.x) * (i / steps);
       const py = this.y + (ny - this.y) * (i / steps);
-      const g = surfaceAt(this.terrain, px, this.y + 1, true);
+      let g = surfaceAt(this.terrain, px, this.y + 1, true);
+      // solids are landable on their top face
+      for (const s of this.terrain.solids ?? []) {
+        if (px > s.x0 && px < s.x1 && this.y <= s.y0 + 2 && s.y0 < g.y && py >= s.y0) {
+          g = { y: s.y0, slope: 0, type: 'prop', segment: -1, surf: null, index: -1 };
+        }
+      }
       if (py >= g.y && this.y <= g.y + 2 && this.vy > 0) {
         this.x = px;
         this.y = g.y;

@@ -11,8 +11,16 @@ export interface SurfaceSeg {
   oneWay: boolean;
 }
 
+/** An axis-aligned solid the skater cannot pass through (dumpsters, barriers, machine blocks). */
+export interface Solid {
+  x0: number; x1: number; y0: number; y1: number;
+  /** Low obstacles can be ollied over; tall ones cannot be cleared by jumping. */
+  kind: 'prop' | 'wall';
+}
+
 export interface TerrainData {
   width: number;
+  solids: Solid[];
   /** Base ground, x-sorted, continuous (walkable everywhere). */
   ground: GroundPoint[];
   /** Floating surfaces: ramps, platforms, bowl lips. */

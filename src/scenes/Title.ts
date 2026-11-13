@@ -56,6 +56,10 @@ export class Title extends Phaser.Scene {
   }
 
   private clearItems(): void {
+    this.statGfx?.destroy();
+    this.statGfx = undefined;
+    for (const l of this.statLabels ?? []) l.destroy();
+    this.statLabels = [];
     for (const i of this.items) i.label.destroy();
     this.items = [];
     this.statText.setText('');
@@ -116,17 +120,43 @@ export class Title extends Phaser.Scene {
     void goals;
   }
 
+  private statGfx?: Phaser.GameObjects.Graphics;
+
   private showCharStats(): void {
     const c = charactersData[this.idx] ?? charactersData[0];
     if (this.screen !== 'chars') return;
     const s = c.stats;
-    const bar = (n: number): string => '#'.repeat(n) + '-'.repeat(5 - n);
-    this.statText.setText(`${c.desc}\nSPD ${bar(s.speed)}  AIR ${bar(s.air)}\nBAL ${bar(s.balance)}  FLIP ${bar(s.flip)}\nSPECIAL: ${c.special}`);
-    this.statText.obj.setPosition(Math.round((this.scale.width - this.statText.width) / 2), 180);
-    // portrait from the idle row of the sheet, scaled 2x
+    // Numeric readout under the bars; the bars themselves are drawn as blocks.
+    this.statText.setText(`${c.name}  SPD${s.speed} AIR${s.air} BAL${s.balance} FLP${s.flip}\n${c.desc}\nSPECIAL: ${c.special}`);
+    this.statText.obj.setPosition(Math.round((this.scale.width - this.statText.width) / 2), 176);
+
+    this.statGfx?.destroy();
+    const g = this.add.graphics().setDepth(1001);
+    this.statGfx = g;
+    const rows: Array<[string, number]> = [['SPD', s.speed], ['AIR', s.air], ['BAL', s.balance], ['FLP', s.flip]];
+    const bx = Math.round(this.scale.width / 2) - 52;
+    const by = 208;
+    rows.forEach(([, v], i) => {
+      for (let k = 0; k < 5; k++) {
+        const x = bx + 22 + k * 9;
+        const y = by + i * 7;
+        g.fillStyle(k < v ? 0xe8a93a : 0x312e3d, 1);
+        g.fillRect(x, y, 7, 5);
+        if (k < v) { g.fillStyle(0xf9c588, 1); g.fillRect(x, y, 7, 1); }
+      }
+    });
+    rows.forEach(([label], i) => {
+      const t = new PixelText(this, bx, by + i * 7, label, 1).setTint(0xadb18c).setDepth(1002);
+      (this.statLabels ??= []).push(t);
+    });
+
+    // Menu portrait: the reference sheet art itself (brief: "style target for the menu portrait").
     this.portrait?.destroy();
-    this.portrait = this.add.image(this.scale.width / 2, 232, `skater_${c.id}`, 0).setScale(2).setOrigin(0.5, 1);
+    this.portrait = this.add.image(this.scale.width / 2, 172, `portrait_${c.id}`).setOrigin(0.5, 1);
+    this.portrait.setDisplaySize(96, 96).setDepth(1001);
   }
+
+  private statLabels?: PixelText[];
 
   private showLevels(): void {
     this.screen = 'levels';

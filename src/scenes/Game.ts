@@ -170,43 +170,44 @@ export class Game extends Phaser.Scene {
     (window as unknown as { __game: Game }).__game = this;
   }
 
+  /**
+   * Ground rendering. The level backgrounds are now the owner's reference artwork (brief section
+   * 6 allows exactly this), so a deep filled ground polygon would paint over the art. Draw only a
+   * thin floor band under the play surface plus the deck line the skater rides.
+   */
   private drawGround(ground: GroundPoint[], surfaces: SurfaceSeg[]): void {
     const g = this.groundGfx;
     g.clear();
-    // base ground: filled body + surface line
-    g.fillStyle(0x1b2238, 1);
+
+    // Base floor: a shallow band (12 px) instead of a full screen fill.
+    g.lineStyle(13, 0x141a2e, 0.92);
     g.beginPath();
-    g.moveTo(ground[0].x, 400);
-    for (const p of ground) g.lineTo(p.x, p.y);
-    g.lineTo(ground[ground.length - 1].x, 400);
-    g.closePath();
-    g.fillPath();
+    g.moveTo(ground[0].x, ground[0].y + 5);
+    for (const p of ground) g.lineTo(p.x, p.y + 5);
+    g.strokePath();
+    // rideable edge, one bright line so the surface is unmistakable
     g.lineStyle(2, 0xadb18c, 1);
     g.beginPath();
     g.moveTo(ground[0].x, ground[0].y);
     for (const p of ground) g.lineTo(p.x, p.y);
     g.strokePath();
 
-    // floating surfaces: ramp/platform bodies with a warm deck line
-    for (const s of surfaces) {
-      const pts = s.points;
-      g.fillStyle(s.oneWay ? 0x312e3d : 0x5a3a24, 1);
+    // Ramps / platforms: a transparent body with a bright deck edge, so the reference art behind
+    // them still reads.
+    for (const s2 of surfaces) {
+      const pts = s2.points;
+      g.fillStyle(s2.oneWay ? 0x1b2238 : 0x5a3a24, 0.55);
       g.beginPath();
-      g.moveTo(pts[0].x, 400);
+      g.moveTo(pts[0].x, pts[0].y);
       for (const p of pts) g.lineTo(p.x, p.y);
-      g.lineTo(pts[pts.length - 1].x, 400);
+      for (let i = pts.length - 1; i >= 0; i--) g.lineTo(pts[i].x, pts[i].y + 8);
       g.closePath();
       g.fillPath();
-      g.lineStyle(2, s.oneWay ? 0xadb18c : 0xc79a5b, 1);
+      g.lineStyle(2, s2.oneWay ? 0xc8f0a0 : 0xe8a93a, 1);
       g.beginPath();
       g.moveTo(pts[0].x, pts[0].y);
       for (const p of pts) g.lineTo(p.x, p.y);
       g.strokePath();
-      // side shading so the ramp reads as a solid object
-      g.lineStyle(1, 0x502120, 0.7);
-      for (let i = 0; i < pts.length - 1; i += 2) {
-        g.lineBetween(pts[i].x, pts[i].y, pts[Math.min(i + 1, pts.length - 1)].x, 400);
-      }
     }
   }
 

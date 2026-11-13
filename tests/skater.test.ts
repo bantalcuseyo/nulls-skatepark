@@ -13,6 +13,7 @@ function flatTerrain(width = 2400): TerrainData {
     ground: [{ x: 0, y: 220 }, { x: width, y: 220 }],
     rails: [],
     bailZones: [],
+    solids: [],
     surfaces: [],
   };
 }
@@ -176,6 +177,7 @@ describe('SkaterSim ramps', () => {
       ground: [{ x: 0, y: 220 }, { x: 2400, y: 220 }],
       rails: [],
       bailZones: [],
+      solids: [],
       surfaces: [
         { points: qp, oneWay: false },
         { points: after, oneWay: true },
@@ -210,6 +212,7 @@ describe('SkaterSim ramps', () => {
       ground: [{ x: 0, y: 220 }, { x: 2400, y: 220 }],
       rails: [],
       bailZones: [],
+      solids: [],
       surfaces: [
         { points: qp, oneWay: false },
         { points: after, oneWay: true },
@@ -235,5 +238,43 @@ describe('SkaterSim special meter', () => {
     expect(s.specialMeter).toBe(0);
     for (let i = 0; i < 100; i++) s.step(DT, input({}));
     expect(s.combo.entries.some((e) => e.category === 'special')).toBe(true);
+  });
+});
+
+describe('SkaterSim solids', () => {
+  it('cannot pass through a dumpster', () => {
+    const terrain: TerrainData = {
+      width: 2400,
+      ground: [{ x: 0, y: 220 }, { x: 2400, y: 220 }],
+      rails: [],
+      bailZones: [],
+      surfaces: [],
+      solids: [{ x0: 700, x1: 740, y0: 192, y1: 220, kind: 'prop' }],
+    };
+    const s = makeSim(terrain);
+    s.x = 600;
+    s.vx = 220;
+    for (let i = 0; i < 120; i++) s.step(DT, input({ held: { pushForward: true } }));
+    expect(s.x).toBeLessThanOrEqual(700);
+  });
+
+  it('can land on top of a solid after an ollie', () => {
+    const terrain: TerrainData = {
+      width: 2400,
+      ground: [{ x: 0, y: 220 }, { x: 2400, y: 220 }],
+      rails: [],
+      bailZones: [],
+      surfaces: [],
+      solids: [{ x0: 700, x1: 740, y0: 192, y1: 220, kind: 'prop' }],
+    };
+    const s = makeSim(terrain);
+    s.x = 650;
+    s.vx = 170;
+    for (let i = 0; i < 90; i++) {
+      const jump = i === 6;
+      s.step(DT, input({ pressed: jump ? { ollie: true } : {}, held: jump ? { ollie: true } : {} }));
+      if (s.x > 705 && s.y <= 195) break;
+    }
+    expect(s.y).toBeLessThanOrEqual(196);
   });
 });

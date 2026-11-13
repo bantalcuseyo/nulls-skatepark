@@ -1,4 +1,4 @@
-import type { TerrainData, GroundPoint, RailDef, SurfaceSeg } from '../sim/Terrain';
+import type { TerrainData, GroundPoint, RailDef, SurfaceSeg, Solid } from '../sim/Terrain';
 import { makeKicker, makeQuarterPipe } from '../sim/Terrain';
 import type { GapDef, CollectibleDef } from '../sim/SkaterSim';
 
@@ -52,6 +52,19 @@ export function buildTerrain(def: LevelDef): TerrainData {
   // For x beyond the highest base point, extend the base flat at the last y.
   void baseMax;
 
+  // Solids: everything the skater must not pass through. Bench seats and rails are grindable, so
+  // they are NOT solid; bodies (dumpster, barrier, funbox, machine, crates) are.
+  const solids: Solid[] = [];
+  for (const p of def.props ?? []) {
+    if (p.type === 'dumpster') solids.push({ x0: p.x, x1: p.x + 40, y0: p.y - 28, y1: p.y, kind: 'prop' });
+    else if (p.type === 'barrier') solids.push({ x0: p.x, x1: p.x + 24, y0: p.y - 20, y1: p.y, kind: 'prop' });
+    else if (p.type === 'funbox') solids.push({ x0: p.x, x1: p.x + (p.len ?? 80), y0: p.y - 26, y1: p.y + 6, kind: 'prop' });
+    else if (p.type === 'manualpad') solids.push({ x0: p.x, x1: p.x + 48, y0: p.y - 8, y1: p.y, kind: 'prop' });
+  }
+  for (const h of def.hazards ?? []) {
+    if (h.type === 'conveyor') solids.push({ x0: h.x ?? 0, x1: (h.x ?? 0) + (h.len ?? 100), y0: 208, y1: 214, kind: 'prop' });
+  }
+
   const rails: RailDef[] = [];
   for (const p of def.props ?? []) {
     if (p.type === 'rail' || p.type === 'flatrail') rails.push({ id: p.id, x: p.x, y: p.y, len: p.len ?? 96, kind: 'rail' });
@@ -59,7 +72,7 @@ export function buildTerrain(def: LevelDef): TerrainData {
     else if (p.type === 'funbox') rails.push({ id: p.id, x: p.x, y: p.y + 6, len: p.len ?? 80, kind: 'ledge' });
     else if (p.type === 'dumpster') rails.push({ id: p.id, x: p.x, y: p.y, len: 40, kind: 'ledge' });
   }
-  return { width: def.width, ground: base, surfaces, rails, bailZones: def.bailZones ?? [] };
+  return { width: def.width, ground: base, surfaces, solids, rails, bailZones: def.bailZones ?? [] };
 }
 
 export function loadLevel(def: LevelDef): LoadedLevel {

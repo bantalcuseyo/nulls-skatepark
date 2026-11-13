@@ -22,6 +22,10 @@ export class Preload extends Phaser.Scene {
       'letter_A', 'letter_T', 'letter_E', 'token_arcade', 'token_metro', 'spray', 'wrench',
       'trashcan', 'drum', 'barrier', 'manualpad'];
     for (const p of props) this.load.image(p, `assets/props/${p}.png`);
+    // Owner-supplied reference portraits: the brief's "style target for the menu portrait".
+    for (const c of ['riff', 'prism', 'brass', 'loop']) {
+      this.load.image(`portrait_${c}`, `assets/portraits/${c}_128.png`);
+    }
     this.load.image('ref_env_subway', 'assets/ref_scaled/ref_env_subway.png');
     this.load.image('ref_env_alley', 'assets/ref_scaled/ref_env_alley.png');
   }
