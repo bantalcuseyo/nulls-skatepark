@@ -1,0 +1,72 @@
+{
+  "id": "alley",
+  "name": "LAST CALL ALLEY",
+  "width": 2600,
+  "timeLimit": 120,
+  "spawn": { "x": 100 },
+  "music": "alley",
+  "ground": [
+    { "x": 0, "y": 220, "type": "flat" },
+    { "x": 300, "y": 220, "type": "flat" },
+    { "x": 480, "y": 220, "type": "flat" },
+    { "x": 700, "y": 220, "type": "flat" },
+    { "x": 1000, "y": 220, "type": "flat" },
+    { "x": 1400, "y": 220, "type": "flat" },
+    { "x": 1800, "y": 220, "type": "flat" },
+    { "x": 2200, "y": 220, "type": "flat" },
+    { "x": 2600, "y": 220, "type": "flat" }
+  ],
+  "kickers": [
+    { "x": 340, "baseY": 220, "run": 60, "rise": 26, "mirror": false },
+    { "x": 1180, "baseY": 220, "run": 60, "rise": 26, "mirror": false }
+  ],
+  "quarters": [
+    { "x": 880, "baseY": 220, "run": 90, "rise": 110, "mirror": false },
+    { "x": 1560, "baseY": 220, "run": 90, "rise": 110, "mirror": false }
+  ],
+  "platforms": [
+    { "x": 970, "y": 110, "to": 1100 },
+    { "x": 1650, "y": 110, "to": 1760 }
+  ],
+  "props": [
+    { "type": "rail", "id": "rail1", "x": 560, "y": 200, "len": 110 },
+    { "type": "rail", "id": "rail2", "x": 1240, "y": 200, "len": 110 },
+    { "type": "rail", "id": "rail3", "x": 1980, "y": 200, "len": 110 },
+    { "type": "dumpster", "id": "dump1", "x": 740, "y": 192 },
+    { "type": "dumpster", "id": "dump2", "x": 1780, "y": 192 },
+    { "type": "flatrail", "id": "curb1", "x": 1000, "y": 216, "len": 120 },
+    { "type": "flatrail", "id": "curb2", "x": 2140, "y": 216, "len": 120 },
+    { "type": "barrier", "id": "bar1", "x": 1400, "y": 200 },
+    { "type": "manualpad", "id": "mp1", "x": 2320, "y": 220 }
+  ],
+  "gaps": [
+    { "id": "dumpster", "name": "Dumpster Gap", "from": 720, "to": 800, "points": 500 },
+    { "id": "stairset", "name": "Stair Set", "from": 1360, "to": 1450, "points": 600 },
+    { "id": "barrier", "name": "Barrier Hop", "from": 1380, "to": 1430, "points": 300 }
+  ],
+  "collectibles": [
+    { "id": "lS", "type": "letter", "char": "S", "x": 380, "y": 165 },
+    { "id": "lK", "type": "letter", "char": "K", "x": 600, "y": 170 },
+    { "id": "lA", "type": "letter", "char": "A", "x": 930, "y": 80 },
+    { "id": "lT", "type": "letter", "char": "T", "x": 1600, "y": 60 },
+    { "id": "lE", "type": "letter", "char": "E", "x": 2030, "y": 175 },
+    { "id": "secret", "type": "secret", "x": 1030, "y": 90 }
+  ],
+  "hazards": [
+    { "type": "trashcan", "x": 1100, "interval": 7, "range": 80 }
+  ],
+  "layers": [
+    { "key": "alley_far", "scroll": 0.15 },
+    { "key": "alley_mid", "scroll": 0.45 },
+    { "key": "alley_near", "scroll": 0.8 }
+  ],
+  "bailZones": [],
+  "goals": [
+    { "id": "score_bronze", "type": "score", "target": 15000, "label": "Score 15,000" },
+    { "id": "score_silver", "type": "score", "target": 30000, "label": "Score 30,000" },
+    { "id": "score_gold", "type": "score", "target": 50000, "label": "Score 50,000" },
+    { "id": "skate", "type": "letters", "target": 5, "label": "Collect S-K-A-T-E" },
+    { "id": "secret", "type": "secret", "target": 1, "label": "Find the Arcade Token" },
+    { "id": "rails3", "type": "rails", "target": 3, "label": "Grind all 3 rails in one combo" }
+  ]
+}

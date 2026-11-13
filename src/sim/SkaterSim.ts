@@ -3,7 +3,7 @@ import { PHYS } from './Physics';
 import { ComboScore } from './ComboScore';
 import { Balance } from './Balance';
 import { makeActive, rotationAward, selectTrick, flipDuration, type ActiveTrick } from './TrickSystem';
-import { inBailZone, railAt, sampleGround, type TerrainData } from './Terrain';
+import { inBailZone, railAt, surfaceAt, type TerrainData } from './Terrain';
 
 export type SkaterState = 'ground' | 'air' | 'grind' | 'manual' | 'bail' | 'special';
 
@@ -36,6 +36,8 @@ export class SkaterSim {
   surfaceY = 220;
   surfaceSlope = 0;
   surfaceType = 'flat';
+  currentSurface: import('./Terrain').FullHit | null = null;
+  ridingIndex = -1;
   angle = 0;              // visual body rotation (deg), for flips
   rotationAccum = 0;
   spinning = false;
@@ -94,7 +96,7 @@ export class SkaterSim {
   }
 
   reset(spawnX = 120): void {
-    const g = sampleGround(this.terrain.ground, spawnX);
+    const g = surfaceAt(this.terrain, spawnX, 400, false);
     this.x = spawnX;
     this.y = g.y;
     this.vx = 0;
@@ -182,7 +184,9 @@ export class SkaterSim {
 
   // ------------------------------------------------------------------ ground
   private stepGround(dt: number, input: InputFrame): void {
-    const g = sampleGround(this.terrain.ground, this.x);
+    const g = surfaceAt(this.terrain, this.x, this.y, false, this.ridingIndex);
+    this.currentSurface = g;
+    this.ridingIndex = g.index;
     this.surfaceY = g.y;
     this.surfaceSlope = g.slope;
     this.y = g.y;
@@ -246,7 +250,7 @@ export class SkaterSim {
 
     // launch off a lip: only when we are near the TOP of a steep ramp. A convex break
     // (slope becomes less negative) right after the steepest section lets go of the ground.
-    const next = sampleGround(this.terrain.ground, this.x + this.vx * dt * 2);
+    const next = surfaceAt(this.terrain, this.x + this.vx * dt * 2, this.y, false, this.ridingIndex);
     const steep = g.slope < -1.0;
     const lipAhead = next.slope > g.slope + 0.35 || g.type !== next.type;
     const ridingUp = this.vx * this.facing > 40;
@@ -294,6 +298,7 @@ export class SkaterSim {
     this.state = 'air';
     this.grounded = false;
     this.airTime = 0;
+    this.ridingIndex = -1;
     this.ollieCharging = false;
     this.coyote = 0;
     this.anim = 'ollie';
@@ -375,8 +380,8 @@ export class SkaterSim {
     for (let i = 1; i <= steps; i++) {
       const px = this.x + (nx - this.x) * (i / steps);
       const py = this.y + (ny - this.y) * (i / steps);
-      const g = sampleGround(this.terrain.ground, px);
-      if (py >= g.y && this.vy > 0) {
+      const g = surfaceAt(this.terrain, px, this.y + 1, true);
+      if (py >= g.y && this.y <= g.y + 2 && this.vy > 0) {
         this.x = px;
         this.y = g.y;
         this.land(g.slope, g.type);
@@ -535,7 +540,7 @@ export class SkaterSim {
     const f = PHYS.rollFriction * 0.6 * dt;
     this.vx = Math.abs(this.vx) <= f ? 0 : this.vx - Math.sign(this.vx) * f;
     this.x += this.vx * dt;
-    const g = sampleGround(this.terrain.ground, this.x);
+    const g = surfaceAt(this.terrain, this.x, this.y, false);
     this.y = g.y;
     if (this.balance.failed) { this.bail('balance'); return; }
     if (this.jumpBuffer > 0 || input.pressed.ollie) {
@@ -570,11 +575,11 @@ export class SkaterSim {
       this.vy += PHYS.gravity * dt;
       this.x += this.vx * dt;
       this.y += this.vy * dt;
-      const g = sampleGround(this.terrain.ground, this.x);
+      const g = surfaceAt(this.terrain, this.x, this.y - 1, true);
       if (this.y >= g.y && this.vy > 0) { this.y = g.y; this.grounded = true; }
     } else {
       this.x += this.vx * dt;
-      const g = sampleGround(this.terrain.ground, this.x);
+      const g = surfaceAt(this.terrain, this.x, this.y, false);
       this.y = g.y;
     }
     if (this.specialTime >= 1.2) {
@@ -654,6 +659,7 @@ export class SkaterSim {
   bail(reason: string): void {
     if (this.state === 'bail') return;
     this.state = 'bail';
+    this.ridingIndex = -1;
     this.bailTimer = PHYS.bailTime;
     this.combo.reset();
     this.specialMeter = 0;
@@ -673,7 +679,8 @@ export class SkaterSim {
 
   private respawn(): void {
     this.x = this.lastSafeX;
-    const g = sampleGround(this.terrain.ground, this.x);
+    this.ridingIndex = -1;
+    const g = surfaceAt(this.terrain, this.x, 400, false);
     this.y = g.y;
     this.vx = this.facing * PHYS.respawnSpeed;
     this.state = 'ground';

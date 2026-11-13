@@ -1,0 +1,238 @@
+import Phaser from 'phaser';
+import { PixelText } from '../systems/PixelText';
+import { AudioManager } from '../systems/AudioManager';
+import type { SaveSystem } from '../systems/SaveSystem';
+import charactersData from '../data/characters.json';
+import strings from '../strings/en.json';
+import { GAME_TITLE } from '../config';
+import { LEVEL_ORDER, LEVELS } from './Game';
+
+type Screen = 'main' | 'chars' | 'levels' | 'settings' | 'credits';
+
+/** Title + main menu + character select + level select + settings, all keyboard/gamepad/touch. */
+export class Title extends Phaser.Scene {
+  private bg!: Phaser.GameObjects.TileSprite;
+  private titleText!: PixelText;
+  private items: { label: PixelText; id: string; action: () => void }[] = [];
+  private hint!: PixelText;
+  private idx = 0;
+  private screen: Screen = 'main';
+  private audio!: AudioManager;
+  private save!: SaveSystem;
+  private selectedChar = 'riff';
+  private freeSkate = false;
+  private t = 0;
+  private statText!: PixelText;
+  private portrait!: Phaser.GameObjects.Image;
+  private flickerT = 0;
+
+  constructor() { super('Title'); }
+
+  create(): void {
+    this.audio = (this.game as unknown as { audio: AudioManager }).audio;
+    this.save = (this.game as unknown as { save: SaveSystem }).save;
+    this.selectedChar = this.save.data.selectedCharacter ?? 'riff';
+    this.cameras.main.setScroll(0, 0);
+
+    this.bg = this.add.tileSprite(0, 0, this.scale.width, 270, 'alley_near').setOrigin(0, 0).setAlpha(0.9);
+    this.add.rectangle(0, 0, this.scale.width, 270, 0x0c1226, 0.35).setOrigin(0, 0);
+    this.titleText = new PixelText(this, 0, 26, GAME_TITLE, 2).setTint(0x12d4e0);
+    this.titleText.obj.setPosition(Math.round((this.scale.width - this.titleText.width) / 2), 26);
+    this.hint = new PixelText(this, 8, 254, strings.pressStart, 1).setTint(0xadb18c);
+    this.statText = new PixelText(this, 0, 0, '', 1).setTint(0xadb18c);
+    this.showMain();
+
+    this.input.keyboard?.on('keydown-UP', () => this.move(-1));
+    this.input.keyboard?.on('keydown-W', () => this.move(-1));
+    this.input.keyboard?.on('keydown-DOWN', () => this.move(1));
+    this.input.keyboard?.on('keydown-S', () => this.move(1));
+    this.input.keyboard?.on('keydown-ENTER', () => this.choose());
+    this.input.keyboard?.on('keydown-SPACE', () => this.choose());
+    this.input.keyboard?.on('keydown-Z', () => this.choose());
+    this.input.keyboard?.on('keydown-ESC', () => this.back());
+    this.input.keyboard?.on('keydown-LEFT', () => this.adjust(-1));
+    this.input.keyboard?.on('keydown-RIGHT', () => this.adjust(1));
+    this.audio.startMusic('menu');
+  }
+
+  private clearItems(): void {
+    for (const i of this.items) i.label.destroy();
+    this.items = [];
+    this.statText.setText('');
+    this.portrait?.destroy();
+  }
+
+  private addItem(id: string, text: string, y: number, action: () => void, tint = 0xf4f0e8): void {
+    const label = new PixelText(this, 0, y, text, 1).setTint(tint);
+    label.obj.setPosition(Math.round((this.scale.width - label.width) / 2), y);
+    const hit = label.obj.setInteractive({ useHandCursor: true });
+    hit.on('pointerdown', () => {
+      this.audio.unlock();
+      const i = this.items.findIndex((it) => it.id === id);
+      if (i >= 0) { this.idx = i; this.refresh(); action(); }
+    });
+    this.items.push({ label, id, action });
+  }
+
+  private showMain(): void {
+    this.screen = 'main';
+    this.clearItems();
+    this.titleText.setText(GAME_TITLE).setVisible(true);
+    this.titleText.obj.setPosition(Math.round((this.scale.width - this.titleText.width) / 2), 26);
+    this.hint.setText('ARROWS + ENTER / TAP').setVisible(true);
+    const startY = 92;
+    this.addItem('career', strings.career, startY, () => { this.freeSkate = false; this.showChars(); });
+    this.addItem('free', strings.freeskate, startY + 22, () => { this.freeSkate = true; this.showChars(); });
+    this.addItem('settings', strings.settings, startY + 44, () => this.showSettings());
+    this.addItem('credits', strings.credits, startY + 66, () => this.showCredits());
+    this.addItem('goals', `GOALS COMPLETE: ${this.save.totalGoals()}`, startY + 100, () => undefined, 0xadb18c);
+    this.idx = 0;
+    this.refresh();
+  }
+
+  private showChars(): void {
+    this.screen = 'chars';
+    this.clearItems();
+    this.titleText.setText(strings.charSelect).setVisible(true);
+    this.titleText.obj.setPosition(Math.round((this.scale.width - this.titleText.width) / 2), 20);
+    this.hint.setText('LEFT/RIGHT STATS  ENTER SELECT  ESC BACK');
+    const goals = this.save.totalGoals();
+    charactersData.forEach((c, i) => {
+      const unlocked = this.save.isCharacterUnlocked(c.id, c.unlockGoals);
+      const label = unlocked ? c.name : `${c.name} (${strings.locked}: ${c.unlockGoals})`;
+      this.addItem(c.id, label, 66 + i * 26, () => {
+        if (!unlocked) return;
+        this.selectedChar = c.id;
+        this.save.data.selectedCharacter = c.id;
+        this.save.save();
+        this.audio.play('menu_confirm');
+        this.showLevels();
+      }, unlocked ? 0xf4f0e8 : 0x53514a);
+    });
+    this.idx = charactersData.findIndex((c) => c.id === this.selectedChar);
+    if (this.idx < 0) this.idx = 0;
+    this.refresh();
+    this.showCharStats();
+    void goals;
+  }
+
+  private showCharStats(): void {
+    const c = charactersData[this.idx] ?? charactersData[0];
+    if (this.screen !== 'chars') return;
+    const s = c.stats;
+    const bar = (n: number): string => '#'.repeat(n) + '-'.repeat(5 - n);
+    this.statText.setText(`${c.desc}\nSPD ${bar(s.speed)}  AIR ${bar(s.air)}\nBAL ${bar(s.balance)}  FLIP ${bar(s.flip)}\nSPECIAL: ${c.special}`);
+    this.statText.obj.setPosition(Math.round((this.scale.width - this.statText.width) / 2), 180);
+    // portrait from the idle row of the sheet, scaled 2x
+    this.portrait?.destroy();
+    this.portrait = this.add.image(this.scale.width / 2, 232, `skater_${c.id}`, 0).setScale(2).setOrigin(0.5, 1);
+  }
+
+  private showLevels(): void {
+    this.screen = 'levels';
+    this.clearItems();
+    this.titleText.setText(strings.levelSelect);
+    this.titleText.obj.setPosition(Math.round((this.scale.width - this.titleText.width) / 2), 20);
+    LEVEL_ORDER.forEach((id, i) => {
+      const def = LEVELS[id];
+      const unlocked = this.save.isLevelUnlocked(id, i);
+      const best = this.save.data.scores[id] ?? 0;
+      const done = this.save.levelGoals(id);
+      const label = unlocked
+        ? `${def.name}  ${done}/6  BEST ${best}`
+        : `${def.name} (${strings.locked}: ${i === 1 ? 3 : 8})`;
+      this.addItem(id, label, 80 + i * 34, () => {
+        if (!unlocked) return;
+        this.audio.play('menu_confirm');
+        this.scene.start('Game', { levelId: id, characterId: this.selectedChar, freeSkate: this.freeSkate });
+      }, unlocked ? 0xf4f0e8 : 0x53514a);
+    });
+    this.idx = 0;
+    this.refresh();
+  }
+
+  private showSettings(): void {
+    this.screen = 'settings';
+    this.clearItems();
+    this.titleText.setText(strings.settings);
+    this.titleText.obj.setPosition(Math.round((this.scale.width - this.titleText.width) / 2), 20);
+    const s = this.save.data.settings;
+    const opts: Array<{ id: string; label: () => string; change: (d: number) => void }> = [
+      { id: 'master', label: () => `${strings.master} ${Math.round(s.master * 10)}`, change: (d) => { s.master = clamp01(s.master + d * 0.1); this.audio.setVolume('master', s.master); } },
+      { id: 'music', label: () => `${strings.music} ${Math.round(s.music * 10)}`, change: (d) => { s.music = clamp01(s.music + d * 0.1); this.audio.setVolume('music', s.music); } },
+      { id: 'sfx', label: () => `${strings.sfx} ${Math.round(s.sfx * 10)}`, change: (d) => { s.sfx = clamp01(s.sfx + d * 0.1); this.audio.setVolume('sfx', s.sfx); } },
+      { id: 'shake', label: () => `${strings.shake} ${Math.round(s.shake * 10)}`, change: (d) => { s.shake = clamp01(s.shake + d * 0.1); } },
+      { id: 'flash', label: () => `${strings.reduceFlash} ${s.reduceFlash ? strings.on : strings.off}`, change: () => { s.reduceFlash = !s.reduceFlash; } },
+      { id: 'crt', label: () => `${strings.crt} ${s.crt ? strings.on : strings.off}`, change: () => { s.crt = !s.crt; } },
+      { id: 'assist', label: () => `${strings.assist} ${s.assist ? strings.on : strings.off}`, change: () => { s.assist = !s.assist; } },
+      { id: 'left', label: () => `${strings.leftHanded} ${s.leftHanded ? strings.on : strings.off}`, change: () => { s.leftHanded = !s.leftHanded; } },
+    ];
+    opts.forEach((o, i) => {
+      this.addItem(o.id, o.label(), 56 + i * 18, () => { o.change(1); this.save.save(); this.showSettings(); });
+    });
+    this.addItem('reset', strings.resetSave, 56 + opts.length * 18 + 10, () => { this.save.reset(); this.showSettings(); }, 0xe0245e);
+    this.idx = 0;
+    this.refresh();
+  }
+
+  private showCredits(): void {
+    this.screen = 'credits';
+    this.clearItems();
+    this.titleText.setText(strings.credits);
+    this.titleText.obj.setPosition(Math.round((this.scale.width - this.titleText.width) / 2), 20);
+    this.statText.setText('NULLS SKATEPARK\n\nCODE, ART, MUSIC: PROCEDURAL\nENGINE: PHASER 3 (MIT)\nFONT: ORIGINAL 5X7 BITMAP\n\nNO COPYRIGHTED ASSETS.\nALL FOUR SKATERS ARE ORIGINAL.');
+    this.statText.obj.setPosition(Math.round((this.scale.width - this.statText.width) / 2), 70);
+    this.addItem('back', strings.back, 220, () => this.showMain());
+    this.idx = 0;
+    this.refresh();
+  }
+
+  private back(): void {
+    this.audio.play('menu_back');
+    if (this.screen === 'main') return;
+    if (this.screen === 'levels') this.showChars();
+    else this.showMain();
+  }
+
+  private move(d: number): void {
+    this.audio.unlock();
+    if (!this.items.length) return;
+    this.idx = (this.idx + d + this.items.length) % this.items.length;
+    this.audio.play('menu_move');
+    this.refresh();
+    this.showCharStats();
+  }
+
+  private adjust(d: number): void {
+    if (this.screen === 'settings') this.choose();
+    else if (this.screen === 'chars') this.move(d);
+  }
+
+  private choose(): void {
+    this.audio.unlock();
+    const it = this.items[this.idx];
+    if (it) { this.audio.play('menu_confirm'); it.action(); }
+  }
+
+  private refresh(): void {
+    this.items.forEach((it, i) => {
+      const focused = i === this.idx;
+      const text = it.label.obj.text.replace(/^[><] /, '').replace(/^  /, '');
+      it.label.setText(focused ? `> ${text}` : `  ${text}`);
+      it.label.obj.setPosition(Math.round((this.scale.width - it.label.width) / 2), it.label.obj.y);
+      it.label.setAlpha(focused ? 1 : 0.7);
+    });
+  }
+
+  update(_t: number, dtMs: number): void {
+    this.t += dtMs / 1000;
+    this.flickerT += dtMs / 1000;
+    this.bg.tilePositionX += dtMs * 0.006;
+    // neon flicker on the title
+    const flicker = Math.sin(this.t * 2.3) > 0.96 ? 0.6 : 1;
+    this.titleText.setAlpha(flicker);
+    this.hint.setAlpha(Math.sin(this.t * 3) > 0 ? 1 : 0.4);
+  }
+}
+
+function clamp01(v: number): number { return Math.max(0, Math.min(1, v)); }

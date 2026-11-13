@@ -3,7 +3,7 @@ import { SkaterSim } from '../src/sim/SkaterSim';
 import { emptyInputFrame } from '../src/sim/types';
 import type { InputFrame } from '../src/sim/types';
 import { PHYS } from '../src/sim/Physics';
-import { makeQuarterPipe, mergeGround, type TerrainData } from '../src/sim/Terrain';
+import { makeQuarterPipe, type TerrainData } from '../src/sim/Terrain';
 
 const DT = 1 / 60;
 
@@ -13,6 +13,7 @@ function flatTerrain(width = 2400): TerrainData {
     ground: [{ x: 0, y: 220 }, { x: width, y: 220 }],
     rails: [],
     bailZones: [],
+    surfaces: [],
   };
 }
 
@@ -167,14 +168,18 @@ describe('SkaterSim grind', () => {
 
 describe('SkaterSim ramps', () => {
     it('rides up a quarter pipe, launches, and lands on the platform', () => {
-    const base = [{ x: 0, y: 220 }, { x: 400, y: 220 }];
+  
     const qp = makeQuarterPipe(400, 220, 90, 110);
     const after = [{ x: 492, y: 110 }, { x: 2400, y: 110 }];
     const terrain: TerrainData = {
       width: 2400,
-      ground: mergeGround(base, qp, after),
+      ground: [{ x: 0, y: 220 }, { x: 2400, y: 220 }],
       rails: [],
       bailZones: [],
+      surfaces: [
+        { points: qp, oneWay: false },
+        { points: after, oneWay: true },
+      ],
     };
     const s = makeSim(terrain);
     s.x = 300;
@@ -197,14 +202,18 @@ describe('SkaterSim ramps', () => {
   });
 
   it('lands clean on a flat platform after a ramp launch with no spin', () => {
-    const base = [{ x: 0, y: 220 }, { x: 400, y: 220 }];
+  
     const qp = makeQuarterPipe(400, 220, 90, 110);
     const after = [{ x: 492, y: 110 }, { x: 2400, y: 110 }];
     const terrain: TerrainData = {
       width: 2400,
-      ground: mergeGround(base, qp, after),
+      ground: [{ x: 0, y: 220 }, { x: 2400, y: 220 }],
       rails: [],
       bailZones: [],
+      surfaces: [
+        { points: qp, oneWay: false },
+        { points: after, oneWay: true },
+      ],
     };
     const s = makeSim(terrain);
     s.x = 470;

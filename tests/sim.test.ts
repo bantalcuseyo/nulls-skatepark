@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ComboScore } from '../src/sim/ComboScore';
 import { Balance } from '../src/sim/Balance';
 import { rotationAward, selectTrick, dirKey } from '../src/sim/TrickSystem';
-import { sampleGround, makeQuarterPipe, mergeGround } from '../src/sim/Terrain';
+import { sampleGround, makeQuarterPipe } from '../src/sim/Terrain';
 
 describe('ComboScore', () => {
   it('scores distinct tricks × multiplier', () => {
@@ -104,9 +104,4 @@ describe('Terrain', () => {
     for (let i = 1; i < q.length; i++) expect(q[i].y).toBeLessThanOrEqual(q[i - 1].y);
   });
 
-  it('mergeGround dedupes overlapping x keeping the higher surface', () => {
-    const m = mergeGround([{ x: 0, y: 220 }, { x: 100, y: 220 }], [{ x: 100, y: 180 }]);
-    const g = sampleGround(m, 100);
-    expect(g.y).toBe(180);
-  });
 });
