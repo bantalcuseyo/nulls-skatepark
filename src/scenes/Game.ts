@@ -11,6 +11,8 @@ import { TouchControls } from '../systems/TouchControls';
 import { AudioManager } from '../systems/AudioManager';
 import { PixelText } from '../systems/PixelText';
 import { detectProfile } from '../systems/PlatformProfile';
+import { AdaptiveQuality } from '../systems/AdaptiveQuality';
+import type { SaveSystem } from '../systems/SaveSystem';
 import charactersData from '../data/characters.json';
 import alleyData from '../data/levels/alley.json';
 import subwayData from '../data/levels/subway.json';
@@ -61,6 +63,12 @@ export class Game extends Phaser.Scene {
   private hitStop = 0;
   private flashRect!: Phaser.GameObjects.Rectangle;
   private endTime = 0;
+  private quality!: AdaptiveQuality;
+  private crtGfx!: Phaser.GameObjects.Graphics;
+  private crtEnabled = false;
+  private reduceFlash = false;
+  private shakeScale = 1;
+  private save!: SaveSystem;
 
   constructor() {
     super('Game');
@@ -120,9 +128,23 @@ export class Game extends Phaser.Scene {
 
     this.rig = new CameraRig(this, this.level.width);
     this.rig.snap(this.sim.x);
-    this.rig.reduceShake = false;
+    this.save = (this.game as unknown as { save: SaveSystem }).save;
+    const st = this.save.data.settings;
+    this.reduceFlash = st.reduceFlash;
+    this.shakeScale = Math.max(0, Math.min(1, st.shake));
+    this.rig.reduceShake = st.shake <= 0;
+    this.crtEnabled = st.crt;
+    this.fx.quality = 1;
+    this.quality = new AdaptiveQuality(this, profile.profile === 'phone', (q) => {
+      this.fx.quality = q;
+      if (q <= 0.6) this.crtEnabled = false;
+      if (q <= 0.4) this.fx.clear();
+    });
 
     this.flashRect = this.add.rectangle(0, 0, this.scale.width, 270, 0xffffff, 0).setOrigin(0, 0).setScrollFactor(0).setDepth(50);
+    // CRT scanlines: one dark line every other row, built once (cheap static overlay)
+    this.crtGfx = this.add.graphics().setScrollFactor(0).setDepth(49).setVisible(this.crtEnabled);
+    if (this.crtEnabled) this.drawCrt();
 
     // touch overlay
     if (profile.touch && this.touch === null) {
@@ -254,7 +276,7 @@ export class Game extends Phaser.Scene {
         this.fx.dust(x, y, 5);
         this.fx.ring(x, y);
         this.skater.squash = 0.8;
-        if ((d.airTime as number) > 0.7) { this.rig.shake(0.25); this.hitStop = 0.05; }
+        if ((d.airTime as number) > 0.7) { this.rig.shake(0.25 * this.shakeScale); this.hitStop = 0.05; }
         break;
       case 'land_sketchy':
         this.audio.play('land_sketchy');
@@ -274,7 +296,7 @@ export class Game extends Phaser.Scene {
         break;
       case 'bail':
         this.audio.play('bail');
-        this.rig.shake(0.7);
+        this.rig.shake(0.7 * this.shakeScale);
         this.hitStop = 0.08;
         this.fx.dust(x, y, 10);
         this.flash(0.25);
@@ -295,7 +317,7 @@ export class Game extends Phaser.Scene {
       case 'special':
         this.audio.play('special');
         this.flash(0.4);
-        this.rig.shake(0.3);
+        this.rig.shake(0.3 * this.shakeScale);
         break;
       case 'special_done':
         this.fx.burst(x, y - 30);
@@ -308,8 +330,18 @@ export class Game extends Phaser.Scene {
     }
   }
 
+  private drawCrt(): void {
+    const g = this.crtGfx;
+    g.clear();
+    g.fillStyle(0x000000, 0.16);
+    for (let y = 0; y < 270; y += 2) {
+      g.fillRect(0, y, this.scale.width, 1);
+    }
+  }
+
   private flash(a: number): void {
     if (a <= 0) return;
+    if (this.reduceFlash) a = Math.min(a, 0.08);
     this.flashRect.setAlpha(a);
     this.tweens.add({ targets: this.flashRect, alpha: 0, duration: 200 });
   }
@@ -347,6 +379,7 @@ export class Game extends Phaser.Scene {
   update(_time: number, deltaMs: number): void {
     if (this.paused || this.finished) return;
     const dt = Math.min(0.05, deltaMs / 1000);
+    this.quality.step(deltaMs);
     if (this.hitStop > 0) {
       this.hitStop -= dt;
       this.fx.update(dt * 0.2);

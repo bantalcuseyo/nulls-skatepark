@@ -41,6 +41,9 @@ export class SkaterSim {
   angle = 0;              // visual body rotation (deg), for flips
   rotationAccum = 0;
   spinning = false;
+  /** Set when a rotation key was already held as we left the ground, so the held key does not
+   *  auto-spin us into a bail. Cleared on release or a fresh press. */
+  rotHoldLock = false;
   bodyLean = 0;
 
   combo = new ComboScore();
@@ -264,6 +267,7 @@ export class SkaterSim {
       this.airTime = 0;
       this.angle = -slopeAngle * (180 / Math.PI) * this.facing;
       this.rotationAccum = -slopeAngle * (180 / Math.PI);
+      this.rotHoldLock = true;
       this.emit('launch', { x: this.x, vy: this.vy });
     } else if (g.type === 'kicker' && next.y > g.y + 2 && ridingUp) {
       // kicker lip: ramp ends and the surface drops away
@@ -275,6 +279,7 @@ export class SkaterSim {
       this.airTime = 0;
       this.angle = -slopeAngle * (180 / Math.PI) * this.facing;
       this.rotationAccum = -slopeAngle * (180 / Math.PI);
+      this.rotHoldLock = true;
       this.emit('launch', { x: this.x, vy: this.vy });
     }
 
@@ -315,7 +320,12 @@ export class SkaterSim {
 
     // In the air the body angle eases back to level when not spinning, so a ramp launch
     // lands flat instead of keeping the ramp's steep angle.
-    const rotating = input.held.pushForward || input.held.brakeBack;
+    // A direction key held through a ramp launch is locomotion, not intent to spin: require a
+    // release (or a fresh press) before rotation starts, otherwise every launch auto-bails.
+    const dirHeld = input.held.pushForward || input.held.brakeBack;
+    if (this.rotHoldLock && !dirHeld) this.rotHoldLock = false;
+    if (this.rotHoldLock && (input.pressed.pushForward || input.pressed.brakeBack)) this.rotHoldLock = false;
+    const rotating = dirHeld && !this.rotHoldLock;
     if (rotating) {
       this.rotationAccum += (input.held.pushForward ? 1 : -1) * this.rotationRate * dt;
       this.spinning = true;
@@ -635,6 +645,7 @@ export class SkaterSim {
     this.angle = surfaceAngle;
     this.rotationAccum = 0;
     this.spinning = false;
+    this.rotHoldLock = false;
     this.vy = 0;
     this.justLanded = 6;
     this.landedClean = !sketchy;

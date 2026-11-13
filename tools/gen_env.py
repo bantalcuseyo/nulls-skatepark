@@ -182,7 +182,7 @@ def alley_near():
     # neon signs + lamps + sidewalk details
     for i in range(6):
         bx = i * 240
-        if i % 2 == 0:
+        if i % 3 == 0:
             # ARCADE sign: red box, cyan letters
             d.rectangle([bx + 18, 60, bx + 92, 86], fill=C["maroon"], outline=C["magenta"])
             draw_block_text(img, "ARCADE", bx + 24, 66, C["cyan"])
@@ -500,15 +500,25 @@ def composite(level):
     return far, mid, near, full
 
 
+def mirror_seam(img):
+    """Return a 2x-wide strip: original + horizontal mirror. Tiling this reads as a continuous
+    street instead of a hard repeat cut (brief section 6: mirror-tiled seams)."""
+    w, h = img.size
+    out = Image.new(img.mode, (w * 2, h))
+    out.paste(img, (0, 0))
+    out.paste(img.transpose(Image.Transpose.FLIP_LEFT_RIGHT), (w, 0))
+    return out
+
+
 def main():
     BG.mkdir(parents=True, exist_ok=True)
     PR.mkdir(parents=True, exist_ok=True)
     for lvl in ("alley", "subway", "warehouse"):
         far, mid, near, full = composite(lvl)
-        far.save(BG / f"{lvl}_far.png")
-        mid.save(BG / f"{lvl}_mid.png")
+        mirror_seam(far).save(BG / f"{lvl}_far.png")
+        mirror_seam(mid).save(BG / f"{lvl}_mid.png")
         if near:
-            near.save(BG / f"{lvl}_near.png")
+            mirror_seam(near).save(BG / f"{lvl}_near.png")
         full.crop((0, 0, 480, 270)).save(BG / f"{lvl}_preview.png")
         print("level", lvl, "layers written")
     for name, img in props().items():
