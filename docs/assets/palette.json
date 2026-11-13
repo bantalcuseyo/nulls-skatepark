@@ -1,0 +1,207 @@
+{
+  "source": [
+    "docs/refs/pdf_p15_0.png",
+    "docs/refs/pdf_p16_0.png",
+    "docs/refs/pdf_p17_0.png",
+    "docs/refs/ref_char_01_riff_sheet.jpg",
+    "docs/refs/ref_char_02_prism_sheet.jpg",
+    "docs/refs/ref_char_03_brass_sheet.jpg",
+    "docs/refs/ref_char_04_loop_sheet.jpg"
+  ],
+  "colours": [
+    "#f9c588",
+    "#adb18c",
+    "#b88460",
+    "#5a7f64",
+    "#8d5d48",
+    "#675a4f",
+    "#53514a",
+    "#294d50",
+    "#68343b",
+    "#3e3134",
+    "#312e3d",
+    "#2f2926",
+    "#1f353d",
+    "#1b2238",
+    "#1a2a27",
+    "#361923",
+    "#231821",
+    "#181f3b",
+    "#1b1722",
+    "#131629",
+    "#0d132a",
+    "#0d1c23",
+    "#0d1226",
+    "#0b1619",
+    "#031726",
+    "#270b1b",
+    "#130a18",
+    "#0b0715",
+    "#030316",
+    "#03020c",
+    "#030a03",
+    "#000000"
+  ],
+  "entries": [
+    {
+      "index": 0,
+      "hex": "#f9c588",
+      "pixels": 0
+    },
+    {
+      "index": 1,
+      "hex": "#adb18c",
+      "pixels": 0
+    },
+    {
+      "index": 2,
+      "hex": "#b88460",
+      "pixels": 0
+    },
+    {
+      "index": 3,
+      "hex": "#5a7f64",
+      "pixels": 0
+    },
+    {
+      "index": 4,
+      "hex": "#8d5d48",
+      "pixels": 0
+    },
+    {
+      "index": 5,
+      "hex": "#675a4f",
+      "pixels": 0
+    },
+    {
+      "index": 6,
+      "hex": "#53514a",
+      "pixels": 0
+    },
+    {
+      "index": 7,
+      "hex": "#294d50",
+      "pixels": 0
+    },
+    {
+      "index": 8,
+      "hex": "#68343b",
+      "pixels": 0
+    },
+    {
+      "index": 9,
+      "hex": "#3e3134",
+      "pixels": 0
+    },
+    {
+      "index": 10,
+      "hex": "#312e3d",
+      "pixels": 0
+    },
+    {
+      "index": 11,
+      "hex": "#2f2926",
+      "pixels": 0
+    },
+    {
+      "index": 12,
+      "hex": "#1f353d",
+      "pixels": 0
+    },
+    {
+      "index": 13,
+      "hex": "#1b2238",
+      "pixels": 0
+    },
+    {
+      "index": 14,
+      "hex": "#1a2a27",
+      "pixels": 0
+    },
+    {
+      "index": 15,
+      "hex": "#361923",
+      "pixels": 0
+    },
+    {
+      "index": 16,
+      "hex": "#231821",
+      "pixels": 0
+    },
+    {
+      "index": 17,
+      "hex": "#181f3b",
+      "pixels": 0
+    },
+    {
+      "index": 18,
+      "hex": "#1b1722",
+      "pixels": 0
+    },
+    {
+      "index": 19,
+      "hex": "#131629",
+      "pixels": 0
+    },
+    {
+      "index": 20,
+      "hex": "#0d132a",
+      "pixels": 0
+    },
+    {
+      "index": 21,
+      "hex": "#0d1c23",
+      "pixels": 0
+    },
+    {
+      "index": 22,
+      "hex": "#0d1226",
+      "pixels": 0
+    },
+    {
+      "index": 23,
+      "hex": "#0b1619",
+      "pixels": 0
+    },
+    {
+      "index": 24,
+      "hex": "#031726",
+      "pixels": 0
+    },
+    {
+      "index": 25,
+      "hex": "#270b1b",
+      "pixels": 0
+    },
+    {
+      "index": 26,
+      "hex": "#130a18",
+      "pixels": 0
+    },
+    {
+      "index": 27,
+      "hex": "#0b0715",
+      "pixels": 0
+    },
+    {
+      "index": 28,
+      "hex": "#030316",
+      "pixels": 0
+    },
+    {
+      "index": 29,
+      "hex": "#03020c",
+      "pixels": 0
+    },
+    {
+      "index": 30,
+      "hex": "#030a03",
+      "pixels": 0
+    },
+    {
+      "index": 31,
+      "hex": "#000000",
+      "pixels": 0
+    }
+  ]
+}

@@ -4,6 +4,8 @@ export default defineConfig({
   base: './',
   server: { host: '127.0.0.1', port: 5173 },
   build: {
+    outDir: 'docs',
+    emptyOutDir: true,
     target: 'es2020',
     assetsInlineLimit: 0,
     chunkSizeWarningLimit: 2000,

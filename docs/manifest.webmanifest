@@ -1,0 +1,10 @@
+{
+  "name": "NULLS SKATEPARK",
+  "short_name": "NULLS",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0c1226",
+  "theme_color": "#0c1226",
+  "icons": []
+}

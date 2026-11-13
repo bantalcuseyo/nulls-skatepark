@@ -44,7 +44,7 @@ GRIND (top), SPECIAL above when the meter is full.
 
 - `PROGRESS.md` — what is done, how to test, known issues, asset size.
 - `DECISIONS.md` — deviations and defaults chosen.
-- `docs/spec/` — the build brief split by section (source of truth).
+- `spec/` — the build brief split by section (source of truth).
 - `tasks/` — one task file per milestone.
 
 ## Don't have a game console? Play it here
