@@ -6,6 +6,10 @@ export class Preload extends Phaser.Scene {
 
   preload(): void {
     this.load.image('pixfont', 'assets/ui/font.png');
+    // One pre-coloured sheet per UI colour: see PixelText for why tinting is not enough.
+    for (const c of ['cream', 'amber', 'cyan', 'magenta', 'green', 'grey', 'red', 'ink', 'teal', 'orange']) {
+      this.load.image(`font_${c}`, `assets/ui/font_${c}.png`);
+    }
     const chars = ['riff', 'prism', 'brass', 'loop'];
     for (const c of chars) {
       this.load.spritesheet(`skater_${c}`, `assets/sprites/skater_${c}.png`, { frameWidth: 64, frameHeight: 64 });

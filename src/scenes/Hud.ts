@@ -25,6 +25,9 @@ export class Hud extends Phaser.Scene {
   private scoreLine!: PixelText;
   private specialLabel!: PixelText;
   private specialName!: PixelText;
+  /** Positions the bar-badge and arc icon need; kept in fields so drawFrames() can follow the text. */
+  private specialLabelX = 0;
+  private specialNameX = 0;
   private timer!: PixelText;
   private letters!: PixelText;
   private toast!: PixelText;
@@ -43,12 +46,12 @@ export class Hud extends Phaser.Scene {
   private static readonly PAD = 6;
   private static readonly PORT = 32;
   private static readonly LEFT_X = 44;        // text column right of the portrait
-  private static readonly BAR_X = 108;        // clear of the widest label ("STAMINA" = 7*8 = 56 px)
-  private static readonly BAR_W = 66;
+  private static readonly BAR_X = 104;        // clear of the widest label ("STAMINA" = 7*8 = 56 px)
+  private static readonly BAR_W = 86;
   private static readonly HEALTH_Y = 17;
   private static readonly STAMINA_Y = 26;
   private static readonly COMBO_Y = 40;
-  private static readonly SPECIAL_BAR_W = 96;
+  private static readonly SPECIAL_BAR_W = 118;
 
   constructor() { super('Hud'); }
 
@@ -65,23 +68,25 @@ export class Hud extends Phaser.Scene {
     // Re-fit on resize: the virtual width flexes on phones, the portrait size must not.
     this.scale.on('resize', () => this.portrait?.setDisplaySize(Hud.PORT, Hud.PORT));
 
-    new PixelText(this, Hud.LEFT_X, 4, char.name, UI.h2).setTint(char.hud.nameColour);
-    new PixelText(this, Hud.LEFT_X, Hud.HEALTH_Y - 1, 'HEALTH', 1).setTint(UI.cream);
-    new PixelText(this, Hud.LEFT_X, Hud.STAMINA_Y - 1, 'STAMINA', 1).setTint(UI.cream);
-    new PixelText(this, Hud.PAD, Hud.COMBO_Y, 'COMBO:', 1).setTint(UI.amber);
-    this.comboValue = new PixelText(this, Hud.PAD + 48, Hud.COMBO_Y - 5, '0', UI.h1).setTint(UI.cream);
-    this.comboMult = new PixelText(this, Hud.PAD + 48, Hud.COMBO_Y + 12, '', 1).setTint(UI.amber);
-    this.scoreLine = new PixelText(this, Hud.PAD, Hud.COMBO_Y + 13, '', 1).setTint(UI.grey);
+    new PixelText(this, Hud.LEFT_X, 4, char.name, UI.h2, 'cyan');
+    new PixelText(this, Hud.LEFT_X, Hud.HEALTH_Y - 1, 'HEALTH', 1, 'cream');
+    new PixelText(this, Hud.LEFT_X, Hud.STAMINA_Y - 1, 'STAMINA:', 1, 'cream');
+    // Figure 1 uses a keyboard-key badge before COMBO (the "C" grab key), not bare text.
+    new PixelText(this, Hud.PAD, Hud.COMBO_Y - 1, 'C', 1, 'cream');
+    new PixelText(this, Hud.PAD + 12, Hud.COMBO_Y, 'COMBO:', 1, 'amber');
+    this.comboValue = new PixelText(this, Hud.PAD + 64, Hud.COMBO_Y - 7, '0', UI.h1, 'amber');
+    this.comboMult = new PixelText(this, Hud.PAD + 64, Hud.COMBO_Y + 12, '', 1, 'cream');
+    this.scoreLine = new PixelText(this, Hud.PAD, Hud.COMBO_Y + 30, '', 1, 'grey');
 
-    this.specialLabel = new PixelText(this, 0, 7, 'SPECIAL:', 1).setTint(UI.cream);
-    this.specialName = new PixelText(this, 0, 26, '', 1).setTint(UI.cream);
-    this.timer = new PixelText(this, 0, 38, '2:00', 1).setTint(UI.cream);
-    this.letters = new PixelText(this, 0, 48, '', 1).setTint(UI.cyan);
+    this.specialLabel = new PixelText(this, 0, 8, 'SPECIAL:', 1, 'ink');
+    this.specialName = new PixelText(this, 0, 26, '', 1, 'cream');
+    this.timer = new PixelText(this, 0, 38, '2:00', 1, 'cream');
+    this.letters = new PixelText(this, 0, 48, '', 1, 'cyan');
 
-    this.toast = new PixelText(this, 0, 92, '', 1).setTint(UI.green).setVisible(false);
-    this.callout = new PixelText(this, 0, 80, '', 1).setTint(UI.cyan).setVisible(false);
-    this.bankText = new PixelText(this, 0, 108, '', UI.h1).setTint(UI.amber).setVisible(false);
-    this.balanceLabel = new PixelText(this, Hud.PAD, 238, 'BALANCE', 1).setTint(UI.grey).setVisible(false);
+    this.toast = new PixelText(this, 0, 92, '', 1, 'green').setVisible(false);
+    this.callout = new PixelText(this, 0, 80, '', 1, 'cyan').setVisible(false);
+    this.bankText = new PixelText(this, 0, 108, '', UI.h1, 'amber').setVisible(false);
+    this.balanceLabel = new PixelText(this, Hud.PAD, 238, 'BALANCE', 1, 'grey').setVisible(false);
 
     this.displayScore = 0;
     this.healthShown = this.g.sim.health;
@@ -96,7 +101,8 @@ export class Hud extends Phaser.Scene {
     const right = W - Hud.PAD;
     // Right-aligned items use a measured width from text length, not BitmapText.width: the cached
     // width is stale on the frame a string changes, which clipped labels against the screen edge.
-    this.specialLabel.setPosition(right - Hud.SPECIAL_BAR_W - 62, 7);
+    this.specialLabelX = right - Hud.SPECIAL_BAR_W - 68;
+    this.specialLabel.setPosition(this.specialLabelX, 8);
     this.specialName.setPosition(right - textW(this.specialName.obj.text, 1), 26);
     this.timer.setPosition(right - textW(this.timer.obj.text, 1), 38);
     this.letters.setPosition(right - textW(this.letters.obj.text, 1), 48);
@@ -107,8 +113,11 @@ export class Hud extends Phaser.Scene {
   private alignRight(): void {
     const right = this.scale.width - Hud.PAD;
     this.specialName.setPosition(right - textW(this.specialName.obj.text, 1), 26);
+    this.specialNameX = this.specialName.obj.x;
     this.timer.setPosition(right - textW(this.timer.obj.text, 1), 38);
     this.letters.setPosition(right - textW(this.letters.obj.text, 1), 48);
+    // the arc icon and the special badge tracks the text they belong to
+    this.drawFrames();
   }
 
   /** Portrait frame + cluster plates + bar tracks. Drawn once per layout, not per frame. */
@@ -120,10 +129,13 @@ export class Hud extends Phaser.Scene {
     // The scene is mid-value pixel art (lit train windows, graffiti), so bare HUD text and bars
     // vanish into it. Figure 1 puts the clusters in the same corners; a soft dark plate keeps them
     // readable there without turning the HUD into a solid panel.
+    // The plate must cover the row ICONS too, not just the bars: at 172 px wide the heart and bolt
+    // landed on the alley's streetlamp and read as scenery rather than HUD.
+    const plateW = Hud.LEFT_X + 56 + Hud.BAR_W + 22;
     g.fillStyle(UI.bg, 0.62);
-    g.fillRect(Hud.PAD - 3, Hud.PAD - 3, Hud.LEFT_X + 56 + Hud.BAR_W + 6, 46);
+    g.fillRect(Hud.PAD - 3, Hud.PAD - 3, plateW, 46);
     g.lineStyle(1, UI.cyan, 0.35);
-    g.strokeRect(Hud.PAD - 2.5, Hud.PAD - 2.5, Hud.LEFT_X + 56 + Hud.BAR_W + 5, 45);
+    g.strokeRect(Hud.PAD - 2.5, Hud.PAD - 2.5, plateW - 1, 45);
     const rx = W - Hud.PAD - Hud.SPECIAL_BAR_W - 64;
     g.fillStyle(UI.bg, 0.62);
     g.fillRect(rx - 4, Hud.PAD - 3, Hud.SPECIAL_BAR_W + 68, 50);
@@ -142,12 +154,72 @@ export class Hud extends Phaser.Scene {
     g.fillRect(Hud.BAR_X - 1, Hud.STAMINA_Y - 1, Hud.BAR_W + 2, 5);
     g.lineStyle(1, UI.dim, 1);
     g.strokeRect(Hud.BAR_X - 1.5, Hud.STAMINA_Y - 1.5, Hud.BAR_W + 3, 6);
+
+    // Row icons, as in Figure 1: a heart after HEALTH, a lightning bolt after STAMINA.
+    this.iconHeart(Hud.BAR_X + Hud.BAR_W + 5, Hud.HEALTH_Y + 3);
+    this.iconBolt(Hud.BAR_X + Hud.BAR_W + 5, Hud.STAMINA_Y + 2);
+    // The combo line leads with a keycap badge containing the grab key.
+    g.fillStyle(UI.cream, 1);
+    g.fillRect(Hud.PAD - 1, Hud.COMBO_Y - 2, 11, 11);
+    g.fillStyle(UI.ink, 1);
+    g.fillRect(Hud.PAD, Hud.COMBO_Y - 1, 9, 9);
+    // SPECIAL is a light badge with dark text, as in Figure 1.
+    const slx = this.specialLabelX;
+    g.fillStyle(UI.cream, 0.95);
+    g.fillRect(slx - 2, 6, 62, 11);
+    // small rainbow-arc icon before the special name
+    this.iconArc(this.specialNameX - 10, 30);
+
     // SPECIAL track, top-right
     const sx = W - Hud.PAD - Hud.SPECIAL_BAR_W;
     g.fillStyle(UI.ink, 1);
     g.fillRect(sx, 14, Hud.SPECIAL_BAR_W, 7);
     g.lineStyle(1, UI.cream, 0.85);
     g.strokeRect(sx - 0.5, 13.5, Hud.SPECIAL_BAR_W + 1, 8);
+    // segment ticks on the special bar so fill is readable without colour
+    g.lineStyle(1, UI.bg, 0.5);
+    for (let i = 1; i < 8; i++) {
+      const x = sx + Math.round((Hud.SPECIAL_BAR_W / 8) * i);
+      g.lineBetween(x, 14, x, 21);
+    }
+  }
+
+  /** Small filled heart for the HEALTH row. */
+  private iconHeart(cx: number, cy: number): void {
+    const g = this.frame;
+    g.fillStyle(0xd42b2e, 1);
+    g.fillRect(cx, cy - 2, 3, 3);
+    g.fillRect(cx + 4, cy - 2, 3, 3);
+    g.fillRect(cx, cy, 7, 3);
+    g.fillRect(cx + 1, cy + 3, 5, 1);
+    g.fillRect(cx + 2, cy + 4, 3, 1);
+    g.fillRect(cx + 3, cy + 5, 1, 1);
+    g.fillStyle(0xf4f0e8, 0.9);
+    g.fillRect(cx + 1, cy - 1, 1, 1);
+  }
+
+  /** Small lightning bolt for the STAMINA row. */
+  private iconBolt(cx: number, cy: number): void {
+    const g = this.frame;
+    g.fillStyle(0xe8e04a, 1);
+    g.fillRect(cx + 2, cy - 3, 3, 4);
+    g.fillRect(cx + 1, cy + 1, 4, 2);
+    g.fillRect(cx + 1, cy + 3, 2, 3);
+    g.fillStyle(0xffffff, 0.7);
+    g.fillRect(cx + 3, cy - 2, 1, 2);
+  }
+
+  /** Small rainbow arc before the special name. */
+  private iconArc(cx: number, cy: number): void {
+    const g = this.frame;
+    const bands: Array<[number, number]> = [[0xd42b2e, 0], [0xe8a93a, 1], [0x4fbf5a, 2], [0x12d4e0, 3], [0x5560e0, 4]];
+    for (const [col, i] of bands) {
+      g.fillStyle(col, 1);
+      // stacked arcs: each band one row up and one px narrower
+      const w = 9 - i * 2;
+      if (w <= 0) continue;
+      g.fillRect(cx + i, cy - i + 2, w, 1);
+    }
   }
 
   showGoal(label: string): void {
@@ -187,19 +259,17 @@ export class Hud extends Phaser.Scene {
     }
     this.scoreLine.setText(`SCORE ${Math.floor(this.displayScore).toLocaleString('en-US')}`);
 
-    // --- COMBO: big pending number + multiplier, amber like Figure 1
-    if (sim.combo.active && snap.pending > 0) {
-      this.comboValue.setText(snap.pending.toLocaleString('en-US')).setVisible(true);
-      this.comboMult.setText(`X${snap.multiplier}`).setVisible(true);
-      // keep the multiplier clear of the number it follows
-      this.comboMult.setPosition(Hud.PAD + 48 + this.comboValue.width + 4, Hud.COMBO_Y + 12);
-      const hot = snap.multiplier >= 4;
-      this.comboValue.setTint(hot ? UI.magenta : UI.cream);
-      this.comboMult.setTint(hot ? UI.cream : UI.amber);
-    } else {
-      this.comboValue.setVisible(false);
-      this.comboMult.setVisible(false);
-    }
+    // --- COMBO: the slot is ALWAYS occupied (Figure 1 reads "COMBO: 1250 x1" even at rest).
+    // Hiding it when idle made the line jump and left the badge with nothing after it.
+    const mult = snap.multiplier;
+    const shownCombo = sim.combo.active && snap.pending > 0 ? snap.pending : 0;
+    this.comboValue.setText(shownCombo.toLocaleString('en-US')).setVisible(true);
+    this.comboMult.setText(`X${mult}`).setVisible(true);
+    // keep the multiplier clear of the number it follows
+    this.comboMult.setPosition(Hud.PAD + 64 + textW(this.comboValue.obj.text, 2) + 4, Hud.COMBO_Y + 12);
+    const hot = mult >= 4;
+    this.comboValue.setTint(hot ? UI.magenta : UI.amber);
+    this.comboMult.setTint(hot ? UI.cream : UI.amber);
 
     // --- bars animate toward the real value instead of snapping
     this.healthShown = approach(this.healthShown, snap.health, 160 * dt);

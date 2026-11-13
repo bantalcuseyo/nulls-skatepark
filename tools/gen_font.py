@@ -73,22 +73,46 @@ G = {
 
 ORDER = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") + [":", ".", ",", "!", "?", "+", "-", "/", "%", ">", "<", "'", "(", ")", "=", "*", "_", "~", " "]
 
+# One sheet per colour used by the UI. Keys are what PixelText asks for.
+COLOURS: dict[str, tuple[int, int, int]] = {
+    "cream":  (244, 240, 232),
+    "amber":  (232, 169, 58),
+    "cyan":   (18, 212, 224),
+    "magenta": (224, 36, 94),
+    "green":  (200, 240, 160),
+    "grey":   (107, 114, 128),
+    "red":    (212, 43, 46),
+    "ink":    (26, 26, 34),
+    "teal":   (63, 158, 147),
+    "orange": (237, 132, 69),
+}
+
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     cols = 16
     rows = (len(ORDER) + cols - 1) // cols
-    sheet = Image.new("RGBA", (cols * CELL, rows * CELL), (0, 0, 0, 0))
-    for i, ch in enumerate(ORDER):
-        x0, y0 = (i % cols) * CELL, (i // cols) * CELL
-        g = G[ch]
-        for r, row in enumerate(g):
-            for c, v in enumerate(row):
-                if v == "1":
-                    sheet.putpixel((x0 + c + 1, y0 + r), (244, 240, 232, 255))
-    sheet.save(OUT / "font.png")
-    (OUT / "font.json").write_text(json.dumps({"chars": ORDER, "cell": CELL}))
-    print("font sheet", sheet.size, len(ORDER), "glyphs")
+    # Colour variants: Phaser's BitmapText.tint is a WEBGL-only feature and silently does nothing
+    # under the CANVAS renderer, which is what a browser without WebGL falls back to. Baking each
+    # colour into its own sheet is the only way the per-character HUD colours (the brief's
+    # requirement) are actually visible everywhere.
+    for name, rgb in COLOURS.items():
+        sheet = Image.new("RGBA", (cols * CELL, rows * CELL), (0, 0, 0, 0))
+        for i, ch in enumerate(ORDER):
+            x0, y0 = (i % cols) * CELL, (i // cols) * CELL
+            g = G[ch]
+            for r, row in enumerate(g):
+                for c, v in enumerate(row):
+                    if v == "1":
+                        sheet.putpixel((x0 + c + 1, y0 + r), rgb + (255,))
+        sheet.save(OUT / f"font_{name}.png")
+    print("font sheets", len(COLOURS), "variants x", len(ORDER), "glyphs")
+
+    # font.png stays the default cream sheet for any legacy reference.
+    base = Image.open(OUT / "font_cream.png")
+    base.save(OUT / "font.png")
+    (OUT / "font.json").write_text(json.dumps({"chars": ORDER, "cell": CELL,
+                                               "variants": list(COLOURS)}))
 
 
 if __name__ == "__main__":

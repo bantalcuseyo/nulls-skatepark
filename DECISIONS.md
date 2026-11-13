@@ -133,3 +133,32 @@ Right-aligning with `right - obj.width` clipped the head off long labels ("SPECT
 right-aligns using `textW(text) = len * 8` (the font is fixed-width 8 px) AFTER setting the string.
 Both clusters also sit on a soft dark plate: the scene is mid-value pixel art, and bare text on top
 of a lit train window was unreadable even when correctly positioned.
+
+## D017 - Text colour is baked, not tinted (tint is WEBGL-only in Phaser 3)
+`BitmapText.setTint()` silently does nothing under Phaser's **CANVAS** renderer, which is what any
+browser without WebGL falls back to. The whole HUD relied on `setTint` for the per-character
+colours, so on such a browser the name, the special name and the special bar label all rendered as
+plain cream — a direct failure of the brief's "portrait, name, special name and bar colour must all
+change when the selected character changes".
+
+This was caught by sampling screenshot pixels, not by eye: `comboValue.tintTopLeft` reported
+`e8a93a` while the rendered glyphs were `#f4f0e8`. Confirmed the cause by printing
+`game.renderer.type` (1 = CANVAS, no WebGL in this environment).
+
+`tools/gen_font.py` now emits one pre-coloured sheet per UI colour (`font_cream.png`,
+`font_amber.png`, ...) and `PixelText` swaps the font sheet, so colour works on both renderers.
+`setTint(hex)` is kept and maps to the nearest baked sheet, so existing call sites are fixed
+without being rewritten. On WEBGL the output is identical to before.
+
+Note for future QA: all screenshots in this pass were captured under CANVAS. Any effect that is
+WEBGL-only (tints, some blend modes) will look different in that environment than on a normal
+desktop browser, so pixel-sample the result rather than trusting the reported tint value.
+
+## D018 - Both character-select columns sit on opaque plates
+The list column had no plate, so the alley's maroon ARCADE neon showed through the row area and
+read as a phantom selection highlight (reported as an "ARCADE PRISM" ghost row). The info column's
+text was centred on the screen's 0.66 mark rather than on the plate, so long descriptions spilled
+~20 px outside their own panel.
+
+Both columns now have opaque plates, and the info column's text is left-aligned on a single x
+derived from the portrait's right edge, so nothing can leave the plate regardless of length.

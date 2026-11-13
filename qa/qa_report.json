@@ -4,7 +4,7 @@
     "hud_riff": {
       "char": "riff",
       "level": "alley",
-      "x": 243,
+      "x": 240,
       "y": 124,
       "state": "air",
       "health": 100,
@@ -19,8 +19,8 @@
     "hud_prism": {
       "char": "prism",
       "level": "alley",
-      "x": 247,
-      "y": 115,
+      "x": 240,
+      "y": 118,
       "state": "air",
       "health": 100,
       "stamina": 63,
@@ -34,7 +34,7 @@
     "hud_brass": {
       "char": "brass",
       "level": "alley",
-      "x": 234,
+      "x": 235,
       "y": 131,
       "state": "air",
       "health": 100,

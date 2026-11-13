@@ -186,66 +186,68 @@ export class Title extends Phaser.Scene {
     this.portrait?.destroy();
 
     const W = this.scale.width;
-    const colX = Math.round(W * 0.66);          // right column centre
-    const colW = W - colX - 10;                 // usable width to the right edge
-    const plateX = colX - 78;
-    const plateW = W - plateX - 12;
+    // Two explicit columns, and BOTH sit on opaque plates. Without a plate on the list column the
+    // alley's maroon ARCADE neon showed through the rows and read as a fake selection highlight —
+    // the "ARCADE PRISM" ghost. Column 2 is the right edge of the list plate.
+    const plateX = 196;
 
-    // Opaque plate behind the whole right column: the environment art must never fight the text.
+    // Opaque plates: the environment art must never fight the text.
     const g = this.add.graphics().setDepth(1000);
     this.statGfx = g;
     g.fillStyle(UI.bgPanel, 0.94);
-    g.fillRect(plateX, 40, plateW, 196);
+    g.fillRect(10, 40, plateX - 20, 168);                    // list column
     g.lineStyle(1, UI.cyan, 0.45);
-    g.strokeRect(plateX + 0.5, 40.5, plateW - 1, 195);
+    g.strokeRect(10.5, 40.5, plateX - 21, 167);
+    g.fillStyle(UI.bgPanel, 0.94);
+    g.fillRect(plateX, 40, W - 12 - plateX, 196);            // info column
+    g.lineStyle(1, UI.cyan, 0.45);
+    g.strokeRect(plateX + 0.5, 40.5, W - 13 - plateX, 195);
 
     // Portrait: the owner's own head crop, 2x, on a framed plate. No redraw.
     const portSize = 64;
+    const portCX = plateX + 42;
     g.fillStyle(UI.ink, 1);
-    g.fillRect(colX - portSize / 2 - 2, 46, portSize + 4, portSize + 4);
+    g.fillRect(portCX - portSize / 2 - 2, 46, portSize + 4, portSize + 4);
     g.lineStyle(1, c.hud.nameColour, 0.9);
-    g.strokeRect(colX - portSize / 2 - 1.5, 46.5, portSize + 3, portSize + 3);
-    this.portrait = this.add.image(colX, 46 + portSize / 2 + 1, `head_${c.id}_2x`)
+    g.strokeRect(portCX - portSize / 2 - 1.5, 46.5, portSize + 3, portSize + 3);
+    this.portrait = this.add.image(portCX, 46 + portSize / 2 + 1, `head_${c.id}_2x`)
       .setOrigin(0.5, 0.5).setDisplaySize(portSize, portSize).setDepth(1001);
 
-    const name = new PixelText(this, 0, 118, c.name, UI.h2).setTint(c.hud.nameColour).setDepth(1002);
-    name.obj.setPosition(Math.round(colX - name.width / 2), 118);
+    // Text column: everything to the RIGHT of the portrait, all left-aligned on one x so nothing
+    // can spill outside the plate.
+    const tx = portCX + portSize / 2 + 10;
+    const name = new PixelText(this, tx, 50, c.name, UI.h2, 'cyan');
     (this.statLabels ??= []).push(name);
 
-    const desc = new PixelText(this, 0, 132, c.desc, UI.micro).setTint(UI.grey).setDepth(1002);
-    // wrap the description to the column so it never runs under the list column
-    desc.setText(this.wrap(c.desc, Math.floor(colW / 6)));
-    desc.obj.setPosition(Math.round(colX - desc.width / 2), 132);
+    const desc = new PixelText(this, tx, 68, c.desc, UI.micro, 'grey');
+    desc.setText(this.wrap(c.desc, Math.floor((W - 12 - tx) / 6)));
     (this.statLabels ??= []).push(desc);
 
     const rows: Array<[string, number]> = [['SPD', c.stats.speed], ['AIR', c.stats.air], ['BAL', c.stats.balance], ['FLP', c.stats.flip]];
-    const rowY = 158;
-    const rowH = 11;
-    const labelX = colX - 46;
-    const barX = colX - 20;
+    const rowY = 100;
+    const rowH = 13;
     rows.forEach(([label, v], i) => {
       const y = rowY + i * rowH;
-      for (let k = 0; k < 5; k++) {
-        const x = barX + k * 8;
-        g.fillStyle(k < v ? UI.amber : UI.dim, 1);
-        g.fillRect(x, y, 6, 5);
-      }
-      const t = new PixelText(this, labelX, y - 1, label, UI.micro).setTint(UI.cyan).setDepth(1002);
+      const t = new PixelText(this, tx, y, label, UI.micro, 'cyan');
       (this.statLabels ??= []).push(t);
+      for (let k = 0; k < 5; k++) {
+        const x = tx + 30 + k * 9;
+        g.fillStyle(k < v ? UI.amber : UI.dim, 1);
+        g.fillRect(x, y, 7, 6);
+      }
+      const val = new PixelText(this, tx + 30 + 5 * 9 + 6, y, String(v), UI.micro, 'cream');
+      (this.statLabels ??= []).push(val);
     });
 
-    const sp = new PixelText(this, 0, rowY + rows.length * rowH + 6, `SPECIAL: ${c.special}`, UI.micro)
-      .setTint(c.hud.specialColour).setDepth(1002);
-    sp.setText(this.wrap(`SPECIAL: ${c.special}`, Math.floor(colW / 6)));
-    sp.obj.setPosition(Math.round(colX - sp.width / 2), rowY + rows.length * rowH + 6);
+    // SPECIAL in the character's own colour, wrapped inside the plate.
+    const sp = new PixelText(this, tx, rowY + rows.length * rowH + 8, `SPECIAL: ${c.special}`, UI.micro, 'cream');
+    sp.setText(this.wrap(`SPECIAL: ${c.special}`, Math.floor((W - 12 - tx) / 6)));
     (this.statLabels ??= []).push(sp);
 
     // Unlock requirement, always visible so a locked skater explains itself before it is tried.
     const unlocked = this.save.isCharacterUnlocked(c.id, c.unlockGoals);
-    const lock = new PixelText(this, 0, rowY + rows.length * rowH + 20,
-      unlocked ? 'UNLOCKED' : `NEEDS ${c.unlockGoals} GOALS`, UI.micro)
-      .setTint(unlocked ? UI.green : UI.magenta).setDepth(1002);
-    lock.obj.setPosition(Math.round(colX - lock.width / 2), rowY + rows.length * rowH + 20);
+    const lock = new PixelText(this, tx, rowY + rows.length * rowH + 24,
+      unlocked ? 'UNLOCKED' : `NEEDS ${c.unlockGoals} GOALS`, UI.micro, unlocked ? 'green' : 'magenta');
     (this.statLabels ??= []).push(lock);
 
     this.auditOverlaps();
